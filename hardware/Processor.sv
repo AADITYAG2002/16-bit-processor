@@ -12,8 +12,8 @@ module Processor #(
 
     ////////////////////////  Declaration & Inittialization  ///////////////////////////////
     // Registers & flags
-    logic [ADDR_WIDTH - 1 : 0] PC, SP;
-    logic [DATA_WIDTH - 1 : 0] MDR, IR;
+    reg [ADDR_WIDTH - 1 : 0] PC, SP;
+    reg [DATA_WIDTH - 1 : 0] MDR, IR;
     logic Z_flag, C_flag;
 
     // control signals
@@ -25,13 +25,12 @@ module Processor #(
         MDR_Read,
         Io_Read,
         Control_Write,
-        PC_Sel,
         ALU_In_1,
         ALU_In_2,
         ALU_Out_Write;
+    logic [2:0] PC_Sel;
     logic [3:0] ALU_Op_Sel;
     logic [2 : 0] Reg_Read_Addr, Reg_Write_Addr;
-    logic [DATA_WIDTH - 1 : 0] Read_Addr, Write_Addr;
 
     // interconnect wires & reg
     logic [DATA_WIDTH - 1 : 0] internal_databus;
@@ -74,15 +73,13 @@ module Processor #(
         .MDR_Read      (MDR_Read),
         .PC_Sel        (PC_Sel),
         .Z_flag        (Z_flag),
-        .C_flag        (Z_flag),
+        .C_flag        (C_flag),
         .ALU_In_1      (ALU_In_1),
         .ALU_In_2      (ALU_In_2),
         .ALU_Op_Sel    (ALU_Op_Sel),
         .ALU_Out_Write (ALU_Out_Write),
         .Reg_Read_Addr (Reg_Read_Addr),
         .Reg_Write_Addr(Reg_Write_Addr),
-        .Read_Addr     (Read_Addr),
-        .Write_Addr    (Write_Addr)
     );
 
     ////////////////////////////////////////////////////////////////////////////////////////
@@ -95,22 +92,22 @@ module Processor #(
     // Write to memory (via pointer in register) from a register
     assign data             = write_mem ? internal_databus : {DATA_WIDTH{1'hz}};
 
-    always_comb begin
-        if (Control_Read) begin
-            address  = Io_Read ? Read_Addr : PC;
-            read_mem = 1;
-            IR       = IR_Read ? internal_databus : {DATA_WIDTH{1'b0}};
-            MDR      = MDR_Read ? internal_databus : {DATA_WIDTH{1'b0}};
+    always_ff @(posedge clk) begin
+        if (Control_Read && !Control_Write) begin
+            address  <= Io_Read ? IR : PC;
+            read_mem <= 1;
+            IR       <= IR_Read ? internal_databus : {DATA_WIDTH{1'b0}};
+            MDR      <= MDR_Read ? internal_databus : {DATA_WIDTH{1'b0}};
         end else begin
-            address  = {DATA_WIDTH{1'hz}};
-            read_mem = 0;
+            address  <= {DATA_WIDTH{1'hz}};
+            read_mem <= 0;
         end
-        if (Control_Write) begin
-            address   = Write_Addr;
-            write_mem = 1;
+        if (Control_Write && !Control_Read) begin
+            address   <= IR;
+            write_mem <= 1;
         end else begin
-            address   = {DATA_WIDTH{1'hz}};
-            write_mem = 0;
+            address   <= {DATA_WIDTH{1'hz}};
+            write_mem <= 0;
         end
     end
 
@@ -138,18 +135,22 @@ module Processor #(
 
     ////////////////////////  CPU reset Program Counter ////////////////////////////
 
-    always_comb begin
+    always_ff @(posedge clk) begin
         case (PC_Sel)
-            0: next_pc = PC + 1'b1;
-            1: next_pc = IR;
+            0: next_pc <= PC + 1'b1;
+            1: next_pc <= Z_flag ? IR : PC + 1'b1;
+            2: next_pc <= (!Z_flag) ? IR : PC + 1'b1;
+            3: next_pc <= (C_flag) ? IR : PC + 1'b1;
+            4: next_pc <= (!C_flag) ? IR : PC + 1'b1;
             default: begin
             end
         endcase
     end
 
     always @(posedge clk) begin
-        if (reset_n) PC <= next_pc;
-        else PC <= {ADDR_WIDTH{1'b0}};
+        if (!reset_n) PC <= {ADDR_WIDTH{1'b0}};
+        else PC <= next_pc;
+
     end
 
     //////////////////////////////////////////////////////////////////////
