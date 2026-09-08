@@ -1,6 +1,8 @@
+`timescale 1ns / 1ps
+
 module Memory #(
-    parameter unsigned ADDR_WIDTH = 8,
-    parameter unsigned DATA_WIDTH = 8,
+    parameter unsigned ADDR_WIDTH = 16,
+    parameter unsigned DATA_WIDTH = 16,
     parameter unsigned DEPTH = 2 ** ADDR_WIDTH
 ) (
     input bit                    write,
@@ -21,6 +23,6 @@ module Memory #(
         if (read) tmp_data <= mem[addr];
     end
 
-    assign data = (!write && read) ? tmp_data : 'hz;
+    assign data = (!write && read) ? tmp_data : {DATA_WIDTH{1'hz}};
 
 endmodule

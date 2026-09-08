@@ -1,3 +1,5 @@
+`timescale 1ns / 1ps
+
 module Register #(
     parameter unsigned DATA_WIDTH = 16
 ) (

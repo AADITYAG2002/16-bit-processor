@@ -1,3 +1,5 @@
+`timescale 1ns / 1ps
+
 module Processor #(
     parameter unsigned ADDR_WIDTH = 16,
     parameter unsigned DATA_WIDTH = 16
