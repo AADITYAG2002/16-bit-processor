@@ -20,12 +20,11 @@
     Atomic                  NOP                 0000 0000 0000 0000                     Do nothing for 1 Clk Cycle
                             HLT                 1111 1111 1111 1111                     Stop Execution
 
------------------------------------------------------------------------------------------------------
+
     Data Transfer           MOV Rd, Rs / Immd   0000 0001 0DDD 0SSS     data             Rd <- Rs / data
                             LDA Rd, Rs / Immd   0000 0010 0DDD 0SSS     data             Rd <- [Rs / data]
                             STA Rd / Immd, Rs   0000 0011 0DDD 0SSS     data             [Rd / data] <- Rs
 
------------------------------------------------------------------------------------------------------
 
     Arithmetic & Logic      ADD Rs / Immd       0000 0100 0000 0SSS     data             A <- A + Rs / data
                             SUB Rs / Immd       0000 0101 0000 0SSS     data             A <- A + Rs / data
@@ -44,7 +43,7 @@
                             PUSH Rs             0000 1101 0000 0SSS                      [SP--] <- Rs
                             POP Rd              0000 1110 0DDD 0000                      Rd <- [++SP]
 
------------------------------------------------------------------------------------------------------
+
     Jump                    JMP addr            1000 0000 0000 0000     addr             PC <- addr
                             JNZ addr            1000 0000 0001 0000     addr             PC <- addr if ZF == 0
                             JZ  addr            1000 0000 0001 0001     addr             PC <- addr if ZF != 0
@@ -56,16 +55,16 @@
 
 ## Register Encoding |  ALU Encoding
 -----------------------------------------------------------------------------------------------------
-no_reg  000                 no_op   0000
-A       001                 ADD     0001
-B       010                 SUB     0010
-C       011                 MUL     0011
-IR      100                 DIV     0100
-PC      101                 AND     1000
-SP      110                 OR      1001
-MDR     111                 XOR     1010
-                            NOT     1011
-                            RRS     1100
-                            RRC     1101
-                            LLS     1110
-                            LLC     1111
+    no_reg  000      |          no_op   0000
+    A       001      |          ADD     0001
+    B       010      |          SUB     0010
+    C       011      |          MUL     0011
+    IR      100      |          DIV     0100
+    PC      101      |          AND     1000
+    SP      110      |          OR      1001
+    MDR     111      |          XOR     1010
+                     |          NOT     1011
+                     |          RRS     1100
+                     |          RRC     1101
+                     |          LLS     1110
+                     |          LLC     1111
