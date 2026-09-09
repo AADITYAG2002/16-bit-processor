@@ -1,4 +1,4 @@
-`timescale 1ns / 1ps
+`timescale 1ns / 100ps
 
 module Register #(
     parameter unsigned DATA_WIDTH = 16
@@ -20,6 +20,6 @@ module Register #(
         else if (write) register[DATA_WIDTH*addr_write+:DATA_WIDTH] <= data_write;
     end
 
-    assign data_read = read ? register[DATA_WIDTH*addr_read+:DATA_WIDTH] : 'hz;
+    assign data_read = read ? register[DATA_WIDTH*addr_read+:DATA_WIDTH] : {DATA_WIDTH{1'hz}};
 
 endmodule

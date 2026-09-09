@@ -1,4 +1,4 @@
-`timescale 1ns / 1ps
+`timescale 1ns / 100ps
 
 module Processor #(
     parameter unsigned ADDR_WIDTH = 16,
@@ -24,6 +24,7 @@ module Processor #(
         Reg_Read,
         Control_Read,
         IR_Read,
+        IR_Write,
         MDR_Read,
         Io_Read,
         Control_Write,
@@ -65,13 +66,15 @@ module Processor #(
     Control control (
         .reset_n       (reset_n),
         .clk           (clk),
-        .instruction   (MDR),
+        .MDR           (MDR),
+        .IR            (IR),
         .Reg_Write     (Reg_Write),
         .Reg_Read      (Reg_Read),
         .Control_Read  (Control_Read),
         .Control_Write (Control_Write),
         .Io_Read       (Io_Read),
         .IR_Read       (IR_Read),
+        .IR_Write      (IR_Write),
         .MDR_Read      (MDR_Read),
         .PC_Sel        (PC_Sel),
         .Z_flag        (Z_flag),
@@ -81,7 +84,7 @@ module Processor #(
         .ALU_Op_Sel    (ALU_Op_Sel),
         .ALU_Out_Write (ALU_Out_Write),
         .Reg_Read_Addr (Reg_Read_Addr),
-        .Reg_Write_Addr(Reg_Write_Addr),
+        .Reg_Write_Addr(Reg_Write_Addr)
     );
 
     ////////////////////////////////////////////////////////////////////////////////////////
@@ -89,27 +92,35 @@ module Processor #(
     ////////////////////////  Memory Access  ////////////////////////////
 
     // Read from memory (via pointer in register) to a register
-    assign internal_databus = ALU_Out_Write ? ALU_out : read_mem ? data : {DATA_WIDTH{1'hz}};
+    always_comb begin
+        if (read_mem) assign internal_databus = data;
+        else if (ALU_Out_Write) assign internal_databus = ALU_out;
+        else if (IR_Write) assign internal_databus = IR;
+        else assign internal_databus = {DATA_WIDTH{1'hz}};
+    end
+
+    // assign internal_databus = ALU_Out_Write ? ALU_out : read_mem ? data : {DATA_WIDTH{1'hz}};
 
     // Write to memory (via pointer in register) from a register
-    assign data             = write_mem ? internal_databus : {DATA_WIDTH{1'hz}};
+    assign data = write_mem ? internal_databus : {DATA_WIDTH{1'hz}};
 
     always_ff @(posedge clk) begin
-        if (Control_Read && !Control_Write) begin
-            address  <= Io_Read ? IR : PC;
-            read_mem <= 1;
-            IR       <= IR_Read ? internal_databus : {DATA_WIDTH{1'b0}};
-            MDR      <= MDR_Read ? internal_databus : {DATA_WIDTH{1'b0}};
+        if (Control_Read) begin
+            address  = Io_Read ? IR : PC;
+            read_mem = 1;
+            IR       = IR_Read ? internal_databus : {DATA_WIDTH{1'b0}};
+            MDR      = MDR_Read ? internal_databus : {DATA_WIDTH{1'b0}};
         end else begin
-            address  <= {DATA_WIDTH{1'hz}};
-            read_mem <= 0;
+            address  = {DATA_WIDTH{1'hz}};
+            read_mem = 0;
         end
-        if (Control_Write && !Control_Read) begin
-            address   <= IR;
-            write_mem <= 1;
+
+        if (Control_Write) begin
+            address   = IR;
+            write_mem = 1;
         end else begin
-            address   <= {DATA_WIDTH{1'hz}};
-            write_mem <= 0;
+            address   = {DATA_WIDTH{1'hz}};
+            write_mem = 0;
         end
     end
 

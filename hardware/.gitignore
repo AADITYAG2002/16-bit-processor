@@ -1,3 +1,3 @@
 .nvim/
-test_benches/
+obj_dir/
 verible.filelist

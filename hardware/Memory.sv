@@ -1,4 +1,4 @@
-`timescale 1ns / 1ps
+`timescale 1ns / 100ps
 
 module Memory #(
     parameter unsigned ADDR_WIDTH = 16,
@@ -13,7 +13,7 @@ module Memory #(
 );
 
     logic [DATA_WIDTH-1:0] tmp_data;
-    logic [DATA_WIDTH-1:0] mem[DEPTH];
+    logic [DATA_WIDTH-1:0] mem[5];
 
     always @(posedge clk) begin
         if (write) mem[addr] <= data;
