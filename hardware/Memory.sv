@@ -15,12 +15,17 @@ module Memory #(
     logic [DATA_WIDTH-1:0] tmp_data;
     logic [DATA_WIDTH-1:0] mem[5];
 
-    always @(posedge clk) begin
-        if (write) mem[addr] <= data;
-    end
+    // always @(posedge clk) begin
+    //     if (write) mem[addr] <= data;
+    // end
+    //
+    // always @(posedge clk) begin
+    //     if (read) tmp_data <= mem[addr];
+    // end
 
-    always @(posedge clk) begin
-        if (read) tmp_data <= mem[addr];
+    always_comb begin
+        if (write) mem[addr] = data;
+        if (read) tmp_data = mem[addr];
     end
 
     assign data = (!write && read) ? tmp_data : {DATA_WIDTH{1'hz}};

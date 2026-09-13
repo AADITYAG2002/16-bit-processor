@@ -1,3 +1,4 @@
 .nvim/
 obj_dir/
 verible.filelist
+*.v

@@ -41,14 +41,14 @@ module Processor #(
     logic [DATA_WIDTH - 1 : 0] ALU_Src_A, ALU_Src_B, ALU_out;
 
     // ALU
-    Alu alu (
-        .A_reg     (ALU_Src_A),
-        .B_reg     (ALU_Src_B),
-        .op_select (ALU_Op_Sel),
-        .ALU_output(ALU_out),
-        .Z_flag    (Z_flag),
-        .C_flag    (C_flag)
-    );
+    // Alu alu (
+    //     .A_reg     (ALU_Src_A),
+    //     .B_reg     (ALU_Src_B),
+    //     .op_select (ALU_Op_Sel),
+    //     .ALU_output(ALU_out),
+    //     .Z_flag    (Z_flag),
+    //     .C_flag    (C_flag)
+    // );
 
     // Register File
     Register register (
@@ -67,7 +67,6 @@ module Processor #(
         .reset_n       (reset_n),
         .clk           (clk),
         .MDR           (MDR),
-        .IR            (IR),
         .Reg_Write     (Reg_Write),
         .Reg_Read      (Reg_Read),
         .Control_Read  (Control_Read),
@@ -99,28 +98,26 @@ module Processor #(
         else assign internal_databus = {DATA_WIDTH{1'hz}};
     end
 
-    // assign internal_databus = ALU_Out_Write ? ALU_out : read_mem ? data : {DATA_WIDTH{1'hz}};
-
     // Write to memory (via pointer in register) from a register
     assign data = write_mem ? internal_databus : {DATA_WIDTH{1'hz}};
 
-    always_ff @(posedge clk) begin
+    always_ff @(negedge clk) begin
         if (Control_Read) begin
-            address  = Io_Read ? IR : PC;
-            read_mem = 1;
-            IR       = IR_Read ? internal_databus : {DATA_WIDTH{1'b0}};
-            MDR      = MDR_Read ? internal_databus : {DATA_WIDTH{1'b0}};
+            address  <= Io_Read ? IR : PC;
+            read_mem <= 1;
+            IR       <= IR_Read ? internal_databus : {DATA_WIDTH{1'b0}};
+            MDR      <= MDR_Read ? internal_databus : {DATA_WIDTH{1'b0}};
         end else begin
-            address  = {DATA_WIDTH{1'hz}};
-            read_mem = 0;
+            // address  <= {DATA_WIDTH{1'hz}};
+            read_mem <= 0;
         end
 
         if (Control_Write) begin
-            address   = IR;
-            write_mem = 1;
+            address   <= IR;
+            write_mem <= 1;
         end else begin
-            address   = {DATA_WIDTH{1'hz}};
-            write_mem = 0;
+            // address   <= {DATA_WIDTH{1'hz}};
+            write_mem <= 0;
         end
     end
 
@@ -128,33 +125,34 @@ module Processor #(
 
     ////////////////////////  ALU  ////////////////////////////
 
-    always_comb begin
-        case (ALU_In_1)
-            1: ALU_Src_A = internal_databus;
-            default: begin
-                ALU_Src_A = {DATA_WIDTH{1'b0}};
-            end
-        endcase
-        case (ALU_In_2)
-            0: ALU_Src_B = internal_databus;
-            1: ALU_Src_B = IR;
-            default: begin
-                ALU_Src_B = {DATA_WIDTH{1'b0}};
-            end
-        endcase
-    end
+    // always_comb begin
+    //     case (ALU_In_1)
+    //         1: ALU_Src_A = internal_databus;
+    //         default: begin
+    //             ALU_Src_A = {DATA_WIDTH{1'b0}};
+    //         end
+    //     endcase
+    //     case (ALU_In_2)
+    //         0: ALU_Src_B = internal_databus;
+    //         1: ALU_Src_B = IR;
+    //         default: begin
+    //             ALU_Src_B = {DATA_WIDTH{1'b0}};
+    //         end
+    //     endcase
+    // end
 
     ///////////////////////////////////////////////////////////
 
     ////////////////////////  CPU reset Program Counter ////////////////////////////
 
-    always_ff @(posedge clk) begin
+    always_comb begin
         case (PC_Sel)
-            0: next_pc <= PC + 1'b1;
-            1: next_pc <= Z_flag ? IR : PC + 1'b1;
-            2: next_pc <= (!Z_flag) ? IR : PC + 1'b1;
-            3: next_pc <= (C_flag) ? IR : PC + 1'b1;
-            4: next_pc <= (!C_flag) ? IR : PC + 1'b1;
+            0: next_pc = PC + {ADDR_WIDTH{1'b0}};
+            1: next_pc = PC + 1'b1;
+            2: next_pc = Z_flag ? IR : PC + 1'b1;
+            3: next_pc = (!Z_flag) ? IR : PC + 1'b1;
+            4: next_pc = (C_flag) ? IR : PC + 1'b1;
+            5: next_pc = (!C_flag) ? IR : PC + 1'b1;
             default: begin
             end
         endcase

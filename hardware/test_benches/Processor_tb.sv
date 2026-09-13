@@ -31,10 +31,10 @@ module Processor_tb;
     always #1 clk = ~clk;
 
     initial begin
-        #1 reset_n = 0;
+        reset_n = 0;
         $readmemh("memory.hex", memory.mem, 0, 4);
-        #3 reset_n = 1;
-        #100 $finish;
+        #0.5 reset_n = 1;
+        #30 $finish;
     end
     initial begin
         $dumpfile("waveform.vcd");
