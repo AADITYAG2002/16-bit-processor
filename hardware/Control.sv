@@ -24,7 +24,7 @@ module ROM (
 
         `ROM_DATA_SIZE'b0_000_0_000_1_0_0_0_0_1_001_0_0_0000_0,  // MDR <- [PC]
         `ROM_DATA_SIZE'b1_000_1_000_0_0_0_0_0_0_001_0_0_0000_0,  // Rd <- Rs
-        `ROM_DATA_SIZE'b1_000_0_000_1_0_0_1_0_0_001_0_0_0000_0,  // IR <- data
+        `ROM_DATA_SIZE'b0_000_0_000_1_0_0_1_0_0_001_0_0_0000_0,  // IR <- data
         `ROM_DATA_SIZE'b0_000_1_000_0_0_0_0_1_0_001_0_0_0000_0,  // Rd <- IR
 
         /* Read Register select */
@@ -122,7 +122,7 @@ module Control #(
                     end
                     `MOV: begin
                         if (param_2 == {1'b0, `IR_REG}) begin
-                            rom_addr     <= 1;
+                            rom_addr     <= 2;
                             param_1_addr <= 0;
                             param_2_addr <= 0;
                             next_state   <= 1;
