@@ -102,6 +102,13 @@ module Control #(
     } = CTRL;
 
     always_ff @(posedge clk) begin
+        $display("break");
+        $display(
+            "[display] time = %0t, reset_n : %b, next_state : %d, state : %d, instr : %0h rom_addr : %0h, param_1_addr : %0h, param_2_addr : %0h",
+            $time, reset_n, next_state, state, instr, rom_addr, param_1_addr, param_2_addr);
+        $strobe(
+            "[strobe]  time = %0t, reset_n : %b, next_state : %d, state : %d, instr : %0h rom_addr : %0h, param_1_addr : %0h, param_2_addr : %0h",
+            $time, reset_n, next_state, state, instr, rom_addr, param_1_addr, param_2_addr);
         if (!reset_n) state <= 0;
         else state <= next_state;
         case (state)
@@ -118,7 +125,7 @@ module Control #(
                             rom_addr     <= 1;
                             param_1_addr <= 0;
                             param_2_addr <= 0;
-                            next_state   <= 2;
+                            next_state   <= 1;
                         end else begin
                             rom_addr     <= 1;
                             param_1_addr <= param_1;
