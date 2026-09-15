@@ -101,14 +101,13 @@ module Processor #(
     // Write to memory (via pointer in register) from a register
     assign data = write_mem ? internal_databus : {DATA_WIDTH{1'hz}};
 
-    always_ff @(negedge clk) begin
+    always_ff @(posedge clk) begin
         if (Control_Read) begin
             address  <= Io_Read ? IR : PC;
             read_mem <= 1;
-            IR       <= IR_Read ? internal_databus : {DATA_WIDTH{1'b0}};
-            MDR      <= MDR_Read ? internal_databus : {DATA_WIDTH{1'b0}};
+            if (MDR_Read) MDR <= internal_databus;
+            if (IR_Read) IR <= internal_databus;
         end else begin
-            // address  <= {DATA_WIDTH{1'hz}};
             read_mem <= 0;
         end
 
@@ -116,7 +115,6 @@ module Processor #(
             address   <= IR;
             write_mem <= 1;
         end else begin
-            // address   <= {DATA_WIDTH{1'hz}};
             write_mem <= 0;
         end
     end

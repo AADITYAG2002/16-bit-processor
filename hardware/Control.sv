@@ -12,8 +12,14 @@ module ROM (
     output logic [`ROM_DATA_SIZE - 1 : 0] CTRL
 );
 
-    logic [3 : 0] read_reg_addr = (param_1_addr != 4'h0) ? (`ROM_NUM_INST_SIZE - 1) - 3 - param_1_addr : (`ROM_NUM_INST_SIZE - 1);
-    logic [3 : 0] write_reg_addr = (param_2_addr != 4'h0) ? (`ROM_NUM_INST_SIZE - 1) - param_2_addr : (`ROM_NUM_INST_SIZE - 1);
+    logic [3 : 0] read_reg_addr, write_reg_addr;
+    always_comb begin
+        read_reg_addr = (param_1_addr != 4'h0) ? ((`ROM_NUM_INST_SIZE - 1) - 3 - param_1_addr) : (`ROM_NUM_INST_SIZE - 1);
+        write_reg_addr = (param_2_addr != 4'h0) ? ((`ROM_NUM_INST_SIZE - 1) - param_2_addr) : (`ROM_NUM_INST_SIZE - 1);
+        $display(
+            "[rom] time = %03t, rom_addr : %02h, param_1_addr : %0h, read_reg_addr : %0h, param_2_addr : %0h, write_reg_addr : %0h",
+            $time, rom_addr, param_1_addr, read_reg_addr, param_2_addr, write_reg_addr);
+    end
     // localparam logic [`ROM_DATA_SIZE * (`ROM_NUM_INST_SIZE + 1) - 1:0] memory = {
     localparam logic [`ROM_DATA_SIZE - 1:0] memory[`ROM_NUM_INST_SIZE] = {
         /*
@@ -77,7 +83,7 @@ module Control #(
     logic [3 : 0] param_2, param_1, param_2_addr, param_1_addr;
     logic [7 : 0] instr;
 
-    logic [7 : 0] state, next_state;
+    logic [7 : 0] state;
 
     ROM rom (
         .rom_addr    (rom_addr),
@@ -87,9 +93,8 @@ module Control #(
     );
 
     initial begin
-        state      = 'hFF;
-        next_state = 0;
-        CTRL       = 0;
+        state = 'h00;
+        CTRL  = 0;
     end
 
 
@@ -104,33 +109,38 @@ module Control #(
     always_ff @(posedge clk) begin
         $display("break");
         $display(
-            "[display] time = %0t, reset_n : %b, next_state : %d, state : %d, instr : %0h rom_addr : %0h, param_1_addr : %0h, param_2_addr : %0h",
-            $time, reset_n, next_state, state, instr, rom_addr, param_1_addr, param_2_addr);
-        $strobe(
-            "[strobe]  time = %0t, reset_n : %b, next_state : %d, state : %d, instr : %0h rom_addr : %0h, param_1_addr : %0h, param_2_addr : %0h",
-            $time, reset_n, next_state, state, instr, rom_addr, param_1_addr, param_2_addr);
+            "[state] time = %03t, reset_n : %b, state : %d, instr : %02h rom_addr : %02h, param_1_addr : %0h, param_2_addr : %0h",
+            $time, reset_n, state, instr, rom_addr, param_1_addr, param_2_addr);
+        // $strobe(
+        //     "[strobe]  time = %0t, reset_n : %b, state : %d, instr : %0h rom_addr : %0h, param_1_addr : %0h, param_2_addr : %0h",
+        //     $time, reset_n, state, instr, rom_addr, param_1_addr, param_2_addr);
         if (!reset_n) state <= 0;
-        else state <= next_state;
         case (state)
             0: begin
+                rom_addr     <= `ROM_NUM_INST_SIZE - 1;
+                param_1_addr <= 0;
+                param_2_addr <= 0;
+                state        <= 1;
+            end
+            1: begin
                 case (instr)
                     `NOP: begin
                         rom_addr     <= 0;
                         param_1_addr <= 0;
                         param_2_addr <= 0;
-                        next_state   <= 0;
+                        state        <= 0;
                     end
                     `MOV: begin
                         if (param_2 == {1'b0, `IR_REG}) begin
                             rom_addr     <= 2;
                             param_1_addr <= 0;
                             param_2_addr <= 0;
-                            next_state   <= 1;
+                            state        <= 2;
                         end else begin
                             rom_addr     <= 1;
                             param_1_addr <= param_1;
                             param_2_addr <= param_2;
-                            next_state   <= 0;
+                            state        <= 0;
                         end
 
                     end
@@ -138,23 +148,23 @@ module Control #(
                         rom_addr     <= 0;
                         param_1_addr <= 0;
                         param_2_addr <= 0;
-                        next_state   <= 0;
+                        state        <= 0;
                     end
                 endcase
             end
-            1: begin
+            2: begin
                 case (instr)
                     `MOV: begin
                         rom_addr     <= 3;
-                        param_1_addr <= param_1;
-                        param_2_addr <= 0;
-                        next_state   <= 0;
+                        param_1_addr <= 0;
+                        param_2_addr <= param_1;
+                        state        <= 0;
                     end
                     default: begin
                         rom_addr     <= 0;
                         param_1_addr <= 0;
                         param_2_addr <= 0;
-                        next_state   <= 0;
+                        state        <= 0;
                     end
                 endcase
             end
