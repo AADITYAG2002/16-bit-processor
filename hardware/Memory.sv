@@ -17,9 +17,6 @@ module Memory #(
 
     // always @(posedge clk) begin
     //     if (write) mem[addr] <= data;
-    // end
-    //
-    // always @(posedge clk) begin
     //     if (read) tmp_data <= mem[addr];
     // end
 

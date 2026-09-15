@@ -33,7 +33,7 @@ module Processor_tb;
     initial begin
         reset_n = 0;
         $readmemh("memory.hex", memory.mem, 0, 4);
-        #0.5 reset_n = 1;
+        #2 reset_n = 1;
         #30 $finish;
     end
     initial begin

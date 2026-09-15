@@ -23,8 +23,8 @@ module Processor #(
         Reg_Write,
         Reg_Read,
         Control_Read,
-        IR_Read,
         IR_Write,
+        IR_Read,
         MDR_Read,
         Io_Read,
         Control_Write,
@@ -72,8 +72,8 @@ module Processor #(
         .Control_Read  (Control_Read),
         .Control_Write (Control_Write),
         .Io_Read       (Io_Read),
-        .IR_Read       (IR_Read),
         .IR_Write      (IR_Write),
+        .IR_Read       (IR_Read),
         .MDR_Read      (MDR_Read),
         .PC_Sel        (PC_Sel),
         .Z_flag        (Z_flag),
@@ -94,7 +94,7 @@ module Processor #(
     always_comb begin
         if (read_mem) assign internal_databus = data;
         else if (ALU_Out_Write) assign internal_databus = ALU_out;
-        else if (IR_Write) assign internal_databus = IR;
+        else if (IR_Read) assign internal_databus = IR;
         else assign internal_databus = {DATA_WIDTH{1'hz}};
     end
 
@@ -106,7 +106,7 @@ module Processor #(
             address  <= Io_Read ? IR : PC;
             read_mem <= 1;
             if (MDR_Read) MDR <= internal_databus;
-            if (IR_Read) IR <= internal_databus;
+            if (IR_Write) IR <= internal_databus;
         end else begin
             read_mem <= 0;
         end
@@ -156,7 +156,7 @@ module Processor #(
         endcase
     end
 
-    always @(posedge clk) begin
+    always_ff @(posedge clk) begin
         if (!reset_n) PC <= {ADDR_WIDTH{1'b0}};
         else PC <= next_pc;
 
