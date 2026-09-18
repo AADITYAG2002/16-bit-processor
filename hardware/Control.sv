@@ -29,10 +29,13 @@ module ROM (
          * ALU_In_1, ALU_In_2, ALU_Op_Sel[3:0], ALU_Out_Write
          */
 
-        `ROM_DATA_SIZE'b0_000_0_000_1_0_0_0_0_1_001_0_0_0000_0,  // MDR <- [PC]
-        `ROM_DATA_SIZE'b1_000_1_000_0_0_0_0_0_0_001_0_0_0000_0,  // Rd <- Rs
-        `ROM_DATA_SIZE'b0_000_0_000_1_0_0_1_0_0_001_0_0_0000_0,  // IR <- data
-        `ROM_DATA_SIZE'b0_000_1_000_0_0_0_0_1_0_001_0_0_0000_0,  // Rd <- IR
+        // Fetch
+        `ROM_DATA_SIZE'b0_000_0_000_1_0_0_0_0_1_000_0_0_0000_0,  // MDR <- [PC]
+
+        // Decode & Execute
+        `ROM_DATA_SIZE'b1_000_1_000_0_0_0_0_0_0_000_0_0_0000_0,  // Rd <- Rs
+        `ROM_DATA_SIZE'b0_000_0_000_1_0_0_1_0_0_000_0_0_0000_0,  // IR <- data
+        `ROM_DATA_SIZE'b0_000_1_000_0_0_0_0_1_0_000_0_0_0000_0,  // Rd <- IR
 
         /* Read Register select */
         `ROM_DATA_SIZE'b0_011_0_000_0_0_0_0_0_0_000_0_0_0000_0,  // C
@@ -44,10 +47,12 @@ module ROM (
         `ROM_DATA_SIZE'b0_000_0_010_0_0_0_0_0_0_000_0_0_0000_0,  // B
         `ROM_DATA_SIZE'b0_000_0_001_0_0_0_0_0_0_000_0_0_0000_0,  // A
 
-        `ROM_DATA_SIZE'b0_000_0_000_0_0_0_0_0_0_000_0_0_0000_0  // NOTHING
+        // END
+        `ROM_DATA_SIZE'b0_000_0_000_0_0_0_0_0_0_001_0_0_0000_0  // NOTHING
     };
 
     assign CTRL = memory[rom_addr] | memory[read_reg_addr] | memory[write_reg_addr];
+    // assign CTRL = memory[`ROM_DATA_SIZE*rom_addr+:`ROM_DATA_SIZE] | memory[`ROM_DATA_SIZE*read_reg_addr+:`ROM_DATA_SIZE] | memory[`ROM_DATA_SIZE*write_reg_addr+:`ROM_DATA_SIZE];
 endmodule
 
 module Control #(
@@ -84,7 +89,7 @@ module Control #(
     logic [3 : 0] param_2, param_1, param_2_addr, param_1_addr;
     logic [7 : 0] instr;
 
-    logic [7 : 0] state;
+    logic [7 : 0] state, next_state;
 
     ROM rom (
         .rom_addr    (rom_addr),
@@ -92,11 +97,6 @@ module Control #(
         .param_2_addr(param_2_addr),
         .CTRL        (CTRL)
     );
-
-    initial begin
-        state = 'h00;
-        CTRL  = 0;
-    end
 
 
     assign {instr, param_1, param_2} = MDR;
@@ -108,77 +108,80 @@ module Control #(
     } = CTRL;
 
     always_ff @(posedge clk) begin
+
         $display("break");
         $display(
             "[state] time = %03t, reset_n : %b, state : %d, instr : %2h rom_addr : %2h, param_1_addr : %h, param_2_addr : %h",
             $time, reset_n, state, instr, rom_addr, param_1_addr, param_2_addr);
-        // $strobe(
-        //     "[strobe]  time = %0t, reset_n : %b, state : %d, instr : %0h rom_addr : %0h, param_1_addr : %0h, param_2_addr : %0h",
-        //     $time, reset_n, state, instr, rom_addr, param_1_addr, param_2_addr);
-        if (!reset_n) state <= `STATE_END;
+
+        if (!reset_n) state <= 'hFF;
+        else state <= next_state;
+    end
+
+    always_comb begin
         case (state)
-            // Fetch & Decode Cycles
+            // Fetch
             0: begin
+                rom_addr     = 0;
+                param_1_addr = 0;
+                param_2_addr = 0;
+                next_state   = 1;
+            end
+
+            // Decode
+            1: begin
                 case (instr)
+
                     `NOP: begin
-                        rom_addr     <= 0;
-                        param_1_addr <= 0;
-                        param_2_addr <= 0;
-                        state        <= `STATE_END;
+                        rom_addr     = `ROM_NUM_INST_SIZE - 1;
+                        param_1_addr = 0;
+                        param_2_addr = 0;
+                        next_state   = `STATE_END;
                     end
+
                     `MOV: begin
                         if (param_2 == {1'b0, `IR_REG}) begin
-                            rom_addr     <= 2;
-                            param_1_addr <= 0;
-                            param_2_addr <= 0;
-                            state        <= 1;
+                            rom_addr     = 2;
+                            param_1_addr = 0;
+                            param_2_addr = 0;
+                            next_state   = 2;
                         end else begin
-                            rom_addr     <= 1;
-                            param_1_addr <= param_1;
-                            param_2_addr <= param_2;
-                            state        <= `STATE_END;
+                            rom_addr     = 1;
+                            param_1_addr = param_1;
+                            param_2_addr = param_2;
+                            next_state   = `STATE_END;
                         end
-
                     end
 
                     default: begin
-                        rom_addr     <= 0;
-                        param_1_addr <= 0;
-                        param_2_addr <= 0;
-                        state        <= `STATE_END;
                     end
                 endcase
             end
-            1: begin
+            2: begin
                 case (instr)
+
                     `MOV: begin
-                        rom_addr     <= 3;
-                        param_1_addr <= 0;
-                        param_2_addr <= param_1;
-                        state        <= `STATE_END;
+                        rom_addr     = 3;
+                        param_1_addr = 0;
+                        param_2_addr = param_1;
+                        next_state   = `STATE_END;
                     end
 
                     default: begin
-                        rom_addr     <= 0;
-                        param_1_addr <= 0;
-                        param_2_addr <= 0;
-                        state        <= `STATE_END;
                     end
                 endcase
             end
             // Execute Cycles
+
             // End / Reset Cycle
             `STATE_END: begin
-                rom_addr     <= `ROM_NUM_INST_SIZE - 1;
-                param_1_addr <= 0;
-                param_2_addr <= 0;
-                state        <= 0;
+                rom_addr     = `ROM_NUM_INST_SIZE - 1;
+                param_1_addr = 0;
+                param_2_addr = 0;
+                next_state   = 0;
             end
 
             default: begin
-                rom_addr     <= 0;
-                param_1_addr <= 0;
-                param_2_addr <= 0;
             end
         endcase
     end

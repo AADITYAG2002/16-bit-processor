@@ -90,34 +90,34 @@ module Processor #(
 
     ////////////////////////  Memory Access  ////////////////////////////
 
-    // Read from memory (via pointer in register) to a register
+    assign read_mem  = Control_Read ? 1 : 0;
+    assign write_mem = Control_Write ? 1 : 0;
     always_comb begin
-        if (read_mem) assign internal_databus = data;
-        else if (ALU_Out_Write) assign internal_databus = ALU_out;
-        else if (IR_Read) assign internal_databus = IR;
-        else assign internal_databus = {DATA_WIDTH{1'hz}};
+        if (MDR_Read) MDR = internal_databus;
+        if (IR_Write) IR = internal_databus;
     end
 
-    // Write to memory (via pointer in register) from a register
+    assign internal_databus = read_mem ? data : (ALU_Out_Write ? ALU_out : (IR_Read ? IR : {DATA_WIDTH{1'hz}}));
+    assign address = Control_Read ? (Io_Read ? IR : PC) : (Control_Write ? IR : {ADDR_WIDTH{1'hz}});
     assign data = write_mem ? internal_databus : {DATA_WIDTH{1'hz}};
 
-    always_ff @(posedge clk) begin
-        if (Control_Read) begin
-            address  <= Io_Read ? IR : PC;
-            read_mem <= 1;
-            if (MDR_Read) MDR <= internal_databus;
-            if (IR_Write) IR <= internal_databus;
-        end else begin
-            read_mem <= 0;
-        end
-
-        if (Control_Write) begin
-            address   <= IR;
-            write_mem <= 1;
-        end else begin
-            write_mem <= 0;
-        end
-    end
+    // always_ff @(posedge clk) begin
+    //     if (Control_Read) begin
+    //         address  <= Io_Read ? IR : PC;
+    //         read_mem <= 1;
+    //         if (MDR_Read) MDR <= internal_databus;
+    //         if (IR_Write) IR <= internal_databus;
+    //     end else begin
+    //         read_mem <= 0;
+    //     end
+    //
+    //     if (Control_Write) begin
+    //         address   <= IR;
+    //         write_mem <= 1;
+    //     end else begin
+    //         write_mem <= 0;
+    //     end
+    // end
 
     //////////////////////////////////////////////////////////////////////
 

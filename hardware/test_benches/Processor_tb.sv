@@ -7,7 +7,7 @@ module Processor_tb;
 
     logic clk, read, write, reset_n;
     logic [ADDR_WIDTH-1:0] addr;
-    logic [DATA_WIDTH-1:0] data;
+    wire  [DATA_WIDTH-1:0] data;
 
     Memory memory (
         .write(write),
@@ -31,9 +31,12 @@ module Processor_tb;
     always #1 clk = ~clk;
 
     initial begin
-        reset_n = 0;
+        clk     = 1;
+        reset_n = 1;
         $readmemh("memory.hex", memory.mem, 0, 4);
-        #2 reset_n = 1;
+
+        #5 reset_n = 0;
+        #5 reset_n = 1;
         #30 $finish;
     end
     initial begin
