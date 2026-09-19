@@ -31,7 +31,7 @@ module Processor #(
         ALU_In_1,
         ALU_In_2,
         ALU_Out_Write;
-    logic [2:0] PC_Sel;
+    wire  [2:0] PC_Sel;
     logic [3:0] ALU_Op_Sel;
     logic [2 : 0] Reg_Read_Addr, Reg_Write_Addr;
 
@@ -151,15 +151,13 @@ module Processor #(
             3: next_pc = (!Z_flag) ? IR : PC + 1'b1;
             4: next_pc = (C_flag) ? IR : PC + 1'b1;
             5: next_pc = (!C_flag) ? IR : PC + 1'b1;
-            default: begin
-            end
+            default: next_pc = PC + {ADDR_WIDTH{1'b0}};
         endcase
     end
 
     always_ff @(posedge clk) begin
         if (!reset_n) PC <= {ADDR_WIDTH{1'b0}};
         else PC <= next_pc;
-
     end
 
     //////////////////////////////////////////////////////////////////////

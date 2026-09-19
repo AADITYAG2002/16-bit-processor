@@ -17,9 +17,9 @@ module Register #(
 
     always @(posedge clk) begin
         if (!reset_n) register <= 'b0;
-        else if (write) register[DATA_WIDTH*addr_write+:DATA_WIDTH] <= data_write;
+        else if (write) register[DATA_WIDTH*(addr_write-1)+:DATA_WIDTH] <= data_write;
     end
 
-    assign data_read = read ? register[DATA_WIDTH*addr_read+:DATA_WIDTH] : {DATA_WIDTH{1'hz}};
+    assign data_read = read ? register[DATA_WIDTH*(addr_read-1)+:DATA_WIDTH] : {DATA_WIDTH{1'hz}};
 
 endmodule
