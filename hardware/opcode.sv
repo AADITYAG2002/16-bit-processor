@@ -24,13 +24,13 @@
 `define RET 8'b1011_0000
 
 `define NO_REG 3'b000
-`define A_REG 3'b001
-`define B_REG 3'b010
-`define C_REG 3'b001
-`define IR_REG 3'b100
+`define B_REG 3'b001
+`define C_REG 3'b010
+`define D_REG 3'b001
+`define E_REG 3'b100
 `define PC_REG 3'b101
 `define SP_REG 3'b110
-`define MDR_REG 3'b111
+`define A_REG 3'b111
 
 `define NO_OP 4'b0000
 `define ADD_OP 4'b0001

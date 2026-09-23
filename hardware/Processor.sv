@@ -3,42 +3,38 @@
 module Processor #(
     parameter unsigned ADDR_WIDTH = 16,
     parameter unsigned DATA_WIDTH = 16
-) (
-    output logic [ADDR_WIDTH - 1:0] address,
-    inout  logic [DATA_WIDTH - 1:0] data,
-    output bit                      read_mem,
-    output bit                      write_mem,
-    input  bit                      reset_n,
-    input  logic                    clk
+)(
+    output  logic   [ ADDR_WIDTH - 1 : 0 ]   address        ,
+    inout   logic   [ DATA_WIDTH - 1 : 0 ]   data           ,
+    output  bit                              read_mem       ,
+    output  bit                              write_mem      ,
+    input   bit                              reset_n        ,
+    input   logic                            clk
 );
 
     ////////////////////////  Declaration & Inittialization  ///////////////////////////////
     // Registers & flags
-    reg [ADDR_WIDTH - 1 : 0] PC, SP;
-    reg [DATA_WIDTH - 1 : 0] MDR, IR;
-    logic Z_flag, C_flag;
+    reg     [ ADDR_WIDTH - 1 : 0 ] PC_debug, SP_debug;
+    reg     [ DATA_WIDTH - 1 : 0 ] MDR, IR;
+    logic             Z_flag, C_flag;
+
+    let PC   = register.register_file.reg_list.PC;
+    let SP   = register.register_file.reg_list.SP;
+    assign PC_debug = PC;
+    assign SP_debug = SP;
 
     // control signals
-    logic
-        Reg_Write,
-        Reg_Read,
-        Control_Read,
-        IR_Write,
-        IR_Read,
-        MDR_Read,
-        Io_Read,
-        Control_Write,
-        ALU_In_1,
-        ALU_In_2,
-        ALU_Out_Write;
-    wire  [2:0] PC_Sel;
-    logic [3:0] ALU_Op_Sel;
-    logic [2 : 0] Reg_Read_Addr, Reg_Write_Addr;
+    logic             Acc_Write, Acc_Read, Reg_Write, Reg_Read;
+    logic             Control_Read, IR_Write, IR_Read, MDR_Read, Io_Read, Control_Write;
+    logic             ALU_In_1, ALU_In_2, ALU_Out_Write;
+    wire    [ 2 : 0 ] PC_Sel;
+    logic   [ 3 : 0 ] ALU_Op_Sel;
+    logic   [ 2 : 0 ] Reg_Read_Addr, Reg_Write_Addr;
 
     // interconnect wires & reg
-    logic [DATA_WIDTH - 1 : 0] internal_databus;
-    logic [ADDR_WIDTH - 1 : 0] next_pc;
-    logic [DATA_WIDTH - 1 : 0] ALU_Src_A, ALU_Src_B, ALU_out;
+    logic   [ DATA_WIDTH - 1 : 0 ] internal_databus;
+    logic   [ ADDR_WIDTH - 1 : 0 ] next_pc;
+    logic   [ DATA_WIDTH - 1 : 0 ] ALU_Src_A, ALU_Src_B, ALU_out;
 
     // ALU
     // Alu alu (
@@ -52,72 +48,56 @@ module Processor #(
 
     // Register File
     Register register (
-        .write     (Reg_Write),
-        .read      (Reg_Read),
-        .reset_n   (reset_n),
-        .clk       (clk),
-        .data_read (internal_databus),
-        .data_write(internal_databus),
-        .addr_read (Reg_Read_Addr),
-        .addr_write(Reg_Write_Addr)
+        .write              ( Reg_Write          ),
+        .read               ( Reg_Read           ),
+        .reset_n            ( reset_n            ),
+        .clk                ( clk                ),
+        .data_read          ( internal_databus   ),
+        .data_write         ( internal_databus   ),
+        .addr_read          ( Reg_Read_Addr      ),
+        .addr_write         ( Reg_Write_Addr     )
     );
 
     // Control Unit
     Control control (
-        .reset_n       (reset_n),
-        .clk           (clk),
-        .MDR           (MDR),
-        .Reg_Write     (Reg_Write),
-        .Reg_Read      (Reg_Read),
-        .Control_Read  (Control_Read),
-        .Control_Write (Control_Write),
-        .Io_Read       (Io_Read),
-        .IR_Write      (IR_Write),
-        .IR_Read       (IR_Read),
-        .MDR_Read      (MDR_Read),
-        .PC_Sel        (PC_Sel),
-        .Z_flag        (Z_flag),
-        .C_flag        (C_flag),
-        .ALU_In_1      (ALU_In_1),
-        .ALU_In_2      (ALU_In_2),
-        .ALU_Op_Sel    (ALU_Op_Sel),
-        .ALU_Out_Write (ALU_Out_Write),
-        .Reg_Read_Addr (Reg_Read_Addr),
-        .Reg_Write_Addr(Reg_Write_Addr)
+        .reset_n            ( reset_n            ),
+        .clk                ( clk                ),
+        .MDR                ( MDR                ),
+        .Reg_Write          ( Reg_Write          ),
+        .Reg_Read           ( Reg_Read           ),
+        .Control_Read       ( Control_Read       ),
+        .Control_Write      ( Control_Write      ),
+        .Io_Read            ( Io_Read            ),
+        .IR_Write           ( IR_Write           ),
+        .IR_Read            ( IR_Read            ),
+        .MDR_Read           ( MDR_Read           ),
+        .PC_Sel             ( PC_Sel             ),
+        .Z_flag             ( Z_flag             ),
+        .C_flag             ( C_flag             ),
+        .ALU_In_1           ( ALU_In_1           ),
+        .ALU_In_2           ( ALU_In_2           ),
+        .ALU_Op_Sel         ( ALU_Op_Sel         ),
+        .ALU_Out_Write      ( ALU_Out_Write      ),
+        .Reg_Read_Addr      ( Reg_Read_Addr      ),
+        .Reg_Write_Addr     ( Reg_Write_Addr     )
     );
 
     ////////////////////////////////////////////////////////////////////////////////////////
 
     ////////////////////////  Memory Access  ////////////////////////////
 
-    assign read_mem  = Control_Read ? 1 : 0;
-    assign write_mem = Control_Write ? 1 : 0;
+    assign read_mem  = Control_Read ? 1: 0;
+    assign write_mem = Control_Write ? 1: 0;
     always_comb begin
-        if (MDR_Read) MDR = internal_databus;
-        if (IR_Write) IR = internal_databus;
+        if ( MDR_Read )
+            MDR      = internal_databus;
+        if ( IR_Write )
+            IR       = internal_databus;
     end
 
-    assign internal_databus = read_mem ? data : (ALU_Out_Write ? ALU_out : (IR_Read ? IR : {DATA_WIDTH{1'hz}}));
-    assign address = Control_Read ? (Io_Read ? IR : PC) : (Control_Write ? IR : {ADDR_WIDTH{1'hz}});
-    assign data = write_mem ? internal_databus : {DATA_WIDTH{1'hz}};
-
-    // always_ff @(posedge clk) begin
-    //     if (Control_Read) begin
-    //         address  <= Io_Read ? IR : PC;
-    //         read_mem <= 1;
-    //         if (MDR_Read) MDR <= internal_databus;
-    //         if (IR_Write) IR <= internal_databus;
-    //     end else begin
-    //         read_mem <= 0;
-    //     end
-    //
-    //     if (Control_Write) begin
-    //         address   <= IR;
-    //         write_mem <= 1;
-    //     end else begin
-    //         write_mem <= 0;
-    //     end
-    // end
+    assign internal_databus = read_mem ? data : ( ALU_Out_Write ? ALU_out : ( IR_Read ? IR : {DATA_WIDTH {1'hz}}) );
+    assign address          = Control_Read ? ( Io_Read ? IR : PC ) : ( Control_Write ? IR : {ADDR_WIDTH {1'hz}});
+    assign data             = write_mem ? internal_databus : {DATA_WIDTH {1'hz}};
 
     //////////////////////////////////////////////////////////////////////
 
@@ -144,24 +124,24 @@ module Processor #(
     ////////////////////////  CPU reset Program Counter ////////////////////////////
 
     always_comb begin
-        case (PC_Sel)
-            0: next_pc = PC + {ADDR_WIDTH{1'b0}};
-            1: next_pc = PC + 1'b1;
-            2: next_pc = Z_flag ? IR : PC + 1'b1;
-            3: next_pc = (!Z_flag) ? IR : PC + 1'b1;
-            4: next_pc = (C_flag) ? IR : PC + 1'b1;
-            5: next_pc = (!C_flag) ? IR : PC + 1'b1;
-            default: next_pc = PC + {ADDR_WIDTH{1'b0}};
+        case ( PC_Sel )
+            0: next_pc        = PC + {ADDR_WIDTH {1'b0}};
+            1: next_pc        = PC + 1'b1;
+            2: next_pc        = Z_flag ? IR : PC + 1'b1;
+            3: next_pc        = ( !Z_flag ) ? IR : PC + 1'b1;
+            4: next_pc        = ( C_flag ) ? IR : PC + 1'b1;
+            5: next_pc        = ( !C_flag ) ? IR : PC + 1'b1;
+            default : next_pc = PC + {ADDR_WIDTH {1'b0}};
         endcase
     end
 
-    always_ff @(posedge clk) begin
-        if (!reset_n) PC <= {ADDR_WIDTH{1'b0}};
-        else PC <= next_pc;
+    always_ff @( posedge clk ) begin
+        if ( !reset_n )
+            PC       <= {ADDR_WIDTH {1'b0}};
+        else
+            PC       <= next_pc;
     end
 
     //////////////////////////////////////////////////////////////////////
 
-
 endmodule
-

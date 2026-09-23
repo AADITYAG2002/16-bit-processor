@@ -4,21 +4,23 @@ module Memory #(
     parameter unsigned ADDR_WIDTH = 16,
     parameter unsigned DATA_WIDTH = 16,
     parameter unsigned DEPTH = 2 ** ADDR_WIDTH
-) (
-    input logic                  clk,
-    input bit                    write,
-    input bit                    read,
-    input logic [ADDR_WIDTH-1:0] addr,
-    inout logic [DATA_WIDTH-1:0] data
+)(
+    input   logic                            clk            ,
+    input   bit                              write          ,
+    input   bit                              read           ,
+    input   logic   [ ADDR_WIDTH - 1 : 0 ]   addr           ,
+    inout   logic   [ DATA_WIDTH - 1 : 0 ]   data
 );
 
-    logic [DATA_WIDTH-1:0] read_addr;
-    logic [DATA_WIDTH-1:0] mem[5];
+    logic   [ DATA_WIDTH - 1 : 0 ] read_addr;
+    logic   [ DATA_WIDTH - 1 : 0 ] mem [ 5 ];
 
     always_comb begin
-        if (write) mem[addr] = data;
-        if (read) read_addr = addr;
+        if ( write )
+            mem [ addr ] = data;
+        if ( read )
+            read_addr = addr;
     end
 
-    assign data = read ? mem[read_addr] : {DATA_WIDTH{1'hz}};
+    assign data     = read ? mem[ read_addr ] : {DATA_WIDTH {1'hz}};
 endmodule

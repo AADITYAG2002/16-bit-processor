@@ -1,4 +1,5 @@
 .nvim/
 obj_dir/
 verible.filelist
-*.v
+lazyverilog_filelist.f
+lazyverilog.toml
