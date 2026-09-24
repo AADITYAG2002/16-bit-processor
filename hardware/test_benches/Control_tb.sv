@@ -2,42 +2,14 @@
 
 module Control_tb;
 
-    parameter unsigned ADDR_WIDTH = 16;
-    parameter unsigned DATA_WIDTH = 16;
+    logic [7:0] rom = 'b0_000_0_000;
 
-    logic clk, reset_n, Z_flag, C_flag;
-    logic [DATA_WIDTH - 1 : 0] MDR;
+    logic [7:0] rom_1 = 8'b1;
 
-    Control u0 (
-        .reset_n(reset_n),
-        .clk    (clk),
-        .MDR    (MDR),
-        .Z_flag (Z_flag),
-        .C_flag (C_flag)
-    );
-
-    always #1 clk = ~clk;
+    logic [7:0] ctrl = rom | (rom_1 << 4);
 
     initial begin
-        clk     = 0;
-        Z_flag  = 0;
-        C_flag  = 0;
-        reset_n = 0;
-        MDR     = 'hFFFF;
-        #0.5 reset_n = 1;
-
-        #2.5 MDR = 'h0000;
-        #2 MDR = 'h0124;
-        // #2 MDR = 'hCAFE;
-        #4 MDR = 'hFFFF;
-        #2 MDR = 'h0000;
-
-        #10 $finish;
-    end
-
-    initial begin
-        $dumpfile("waveform.vcd");
-        $dumpvars;
+        $display("rom %08b, rom_1 %08b, ctrl %08b", rom, rom_1, ctrl);
     end
 
 endmodule
