@@ -24,6 +24,7 @@ module Processor #(
     assign SP_debug = SP;
 
     // control signals
+    logic Halt;
     logic Acc_Write, Acc_Read, Reg_Write, Reg_Read;
     logic [2 : 0] Reg_Read_Addr, Reg_Write_Addr;
     logic Control_Read, IR_Write, IR_Read, MDR_Read, Io_Read, Control_Write;
@@ -63,6 +64,7 @@ module Processor #(
         .reset_n       (reset_n),
         .clk           (clk),
         .MDR           (MDR),
+        .Halt          (Halt),
         .Acc_Read      (Acc_Read),
         .Acc_Write     (Acc_Write),
         .Reg_Write     (Reg_Write),
@@ -143,7 +145,7 @@ module Processor #(
 
     always_ff @(posedge clk) begin
         if (!reset_n) PC <= {ADDR_WIDTH{1'b0}};
-        else PC <= next_pc;
+        else if (!Halt) PC <= next_pc;
     end
 
     //////////////////////////////////////////////////////////////////////

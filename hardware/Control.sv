@@ -3,10 +3,10 @@
 `timescale 1ns / 100ps
 `define ROM_ADDR_SIZE 4
 `define ROM_DATA_SIZE 26
-`define ROM_NUM_INST_SIZE 5
+`define ROM_NUM_INST_SIZE 7
 `define ROM_NOTHING `ROM_NUM_INST_SIZE - 1
 `define RESET 255
-`define STATE_END 0
+`define STATE_END 255
 
 module ROM (
     input  logic [`ROM_ADDR_SIZE - 1 : 0] rom_addr,
@@ -17,14 +17,9 @@ module ROM (
 
     logic [`ROM_DATA_SIZE - 1 : 0] read_reg_addr, write_reg_addr;
 
-    // always_comb begin
-    //     read_reg_addr  = (read_addr != 3'h0) ? (`ROM_NOTHING - 3 - read_addr) : `ROM_NOTHING;
-    //     write_reg_addr = (write_addr != 3'h0) ? (`ROM_NOTHING - write_addr) : `ROM_NOTHING;
-    // end
-
     always_comb begin
-        read_reg_addr  = (read_addr == 3'b111) ? (1'b1 << 25) : (read_addr << 20);
-        write_reg_addr = (write_addr == 3'b111) ? (1'b1 << 24) : (write_addr << 16);
+        read_reg_addr  = (read_addr == 3'b111) ? (1'b1 << 25) : ({23'b0, read_addr} << 20);
+        write_reg_addr = (write_addr == 3'b111) ? (1'b1 << 24) : ({23'b0, write_addr} << 16);
     end
 
     // localparam logic [`ROM_DATA_SIZE * (`ROM_NUM_INST_SIZE + 1) - 1:0] memory = {
@@ -43,21 +38,11 @@ module ROM (
         `ROM_DATA_SIZE'b0_0_1_000_1_000_0_0_0_0_0_0_000_0_0_0000_0,  // Rd <- Rs
         `ROM_DATA_SIZE'b0_0_0_000_0_000_1_0_0_1_0_0_001_0_0_0000_0,  // IR <- data
         `ROM_DATA_SIZE'b0_0_0_000_1_000_0_0_0_0_1_0_000_0_0_0000_0,  // Rd <- IR
+        `ROM_DATA_SIZE'b0_0_1_000_0_000_0_0_0_1_0_0_000_0_0_0000_0,  // IR <- Rs
+        `ROM_DATA_SIZE'b0_0_0_000_1_000_1_0_1_0_0_0_000_0_0_0000_0,  // Rd <- [IR]
 
-        /* Read Register select */
-        // `ROM_DATA_SIZE'b0_0_0_100_0_000_0_0_0_0_0_0_000_0_0_0000_0,  // E
-        // `ROM_DATA_SIZE'b0_0_0_011_0_000_0_0_0_0_0_0_000_0_0_0000_0,  // D
-        // `ROM_DATA_SIZE'b0_0_0_010_0_000_0_0_0_0_0_0_000_0_0_0000_0,  // C
-        // `ROM_DATA_SIZE'b0_0_0_001_0_000_0_0_0_0_0_0_000_0_0_0000_0,  // B
-
-        // /* Write Register select */
-        // `ROM_DATA_SIZE'b0_0_0_000_0_100_0_0_0_0_0_0_000_0_0_0000_0,  // E
-        // `ROM_DATA_SIZE'b0_0_0_000_0_011_0_0_0_0_0_0_000_0_0_0000_0,  // D
-        // `ROM_DATA_SIZE'b0_0_0_000_0_010_0_0_0_0_0_0_000_0_0_0000_0,  // C
-        // `ROM_DATA_SIZE'b0_0_0_000_0_001_0_0_0_0_0_0_000_0_0_0000_0,  // B
-
-        // END
-        `ROM_DATA_SIZE'b0_000_0_000_0_0_0_0_0_0_000_0_0_0000_0  // Nothing
+        // END / RESET
+        `ROM_DATA_SIZE'b0_0_0_000_0_000_0_0_0_0_0_0_000_0_0_0000_0  // Nothing
     };
 
     assign CTRL = memory[rom_addr] | read_reg_addr | write_reg_addr;
@@ -73,6 +58,7 @@ module Control #(
     input logic                      Z_flag,
     input logic                      C_flag,
 
+    output logic         Halt,
     output logic         Acc_Read,
     output logic         Acc_Write,
     output logic         Reg_Read,
@@ -121,77 +107,99 @@ module Control #(
         else state <= next_state;
     end
 
-    always_comb begin
-        case (state)
-            // Fetch
-            0: begin
-                rom_addr   = 0;
-                write_addr = 0;
-                read_addr  = 0;
-                next_state = 1;
-            end
+    always_ff @(posedge clk) begin
+        if (!reset_n) Halt <= 0;
+        else if ((state == `STATE_END) && (instr == `HLT)) Halt <= 1;
+    end
 
-            // Decode & Execute
-            1: begin
-                case (instr)
-                    `NOP: begin
-                        rom_addr   = `ROM_NOTHING;
-                        write_addr = 0;
-                        read_addr  = 0;
-                        next_state = `STATE_END;
-                    end
-                    `MOV: begin
-                        if (param_2_immd == 1'b1) begin
-                            rom_addr   = 2;
+    always_comb begin
+        if (!Halt) begin
+            case (state)
+                // Fetch
+                0: begin
+                    rom_addr   = 0;
+                    write_addr = 0;
+                    read_addr  = 0;
+                    next_state = 1;
+                end
+
+                // Decode & Execute
+                1: begin
+                    case (instr)
+                        `NOP: begin
+                            rom_addr   = `ROM_NOTHING;
                             write_addr = 0;
                             read_addr  = 0;
-                            next_state = 2;
-                        end else begin
-                            rom_addr   = 1;
-                            write_addr = param_1;
-                            read_addr  = param_2;
                             next_state = `STATE_END;
                         end
-                    end
+                        `HLT: begin
+                            rom_addr   = `ROM_NOTHING;
+                            write_addr = 0;
+                            read_addr  = 0;
+                            next_state = `STATE_END;
+                        end
+                        `MOV: begin
+                            if (param_2_immd == 1'b1) begin
+                                rom_addr   = 2;
+                                write_addr = 0;
+                                read_addr  = 0;
+                                next_state = 2;
+                            end else begin
+                                rom_addr   = 1;
+                                write_addr = param_1;
+                                read_addr  = param_2;
+                                next_state = `STATE_END;
+                            end
+                        end
+                        `LDA: begin
+                            rom_addr   = (param_2_immd == 1'b1) ? 2 : 4;
+                            write_addr = 0;
+                            read_addr  = param_2;
+                            next_state = 2;
+                        end
+                        default: begin
+                            rom_addr   = `ROM_NOTHING;
+                            write_addr = 0;
+                            read_addr  = 0;
+                            next_state = `STATE_END;
+                        end
+                    endcase
+                end
+                2: begin
+                    case (instr)
+                        `MOV: begin
+                            rom_addr   = 3;
+                            write_addr = param_1;
+                            read_addr  = 0;
+                            next_state = `STATE_END;
+                        end
+                        `LDA: begin
+                            rom_addr   = 5;
+                            write_addr = param_1;
+                            read_addr  = 0;
+                            next_state = `STATE_END;
+                        end
+                        default: begin
+                            rom_addr   = `ROM_NOTHING;
+                            write_addr = 0;
+                            read_addr  = 0;
+                            next_state = `STATE_END;
+                        end
+                    endcase
+                end
 
-                    default: begin
-                        rom_addr   = `ROM_NOTHING;
-                        write_addr = 0;
-                        read_addr  = 0;
-                        next_state = `STATE_END;
-                    end
-                endcase
-            end
-            2: begin
-                case (instr)
+                // End / Reset Cycle
+                `RESET: begin
+                    rom_addr   = `ROM_NOTHING;
+                    write_addr = 0;
+                    read_addr  = 0;
+                    next_state = 0;
+                end
 
-                    `MOV: begin
-                        rom_addr   = 3;
-                        write_addr = param_1;
-                        read_addr  = 0;
-                        next_state = `STATE_END;
-                    end
-
-                    default: begin
-                        rom_addr   = `ROM_NOTHING;
-                        write_addr = 0;
-                        read_addr  = 0;
-                        next_state = `STATE_END;
-                    end
-                endcase
-            end
-
-            // End / Reset Cycle
-            `RESET: begin
-                rom_addr   = `ROM_NOTHING;
-                write_addr = 0;
-                read_addr  = 0;
-                next_state = 0;
-            end
-
-            default: begin
-            end
-        endcase
+                default: begin
+                end
+            endcase
+        end
     end
 
 endmodule
