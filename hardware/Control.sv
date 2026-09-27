@@ -3,7 +3,7 @@
 `timescale 1ns / 100ps
 `define ROM_ADDR_SIZE 4
 `define ROM_DATA_SIZE 26
-`define ROM_NUM_INST_SIZE 7
+`define ROM_NUM_INST_SIZE 8
 `define ROM_NOTHING `ROM_NUM_INST_SIZE - 1
 `define RESET 255
 `define STATE_END 255
@@ -40,6 +40,7 @@ module ROM (
         `ROM_DATA_SIZE'b0_0_0_000_1_000_0_0_0_0_1_0_000_0_0_0000_0,  // Rd <- IR
         `ROM_DATA_SIZE'b0_0_1_000_0_000_0_0_0_1_0_0_000_0_0_0000_0,  // IR <- Rs
         `ROM_DATA_SIZE'b0_0_0_000_1_000_1_0_1_0_0_0_000_0_0_0000_0,  // Rd <- [IR]
+        `ROM_DATA_SIZE'b0_0_1_000_0_000_0_1_0_0_0_0_000_0_0_0000_0,  // [IR] <- Rs
 
         // END / RESET
         `ROM_DATA_SIZE'b0_0_0_000_0_000_0_0_0_0_0_0_000_0_0_0000_0  // Nothing
@@ -109,7 +110,7 @@ module Control #(
 
     always_ff @(posedge clk) begin
         if (!reset_n) Halt <= 0;
-        else if ((state == `STATE_END) && (instr == `HLT)) Halt <= 1;
+        else if ((state == 1) && (instr == `HLT)) Halt <= 1;
     end
 
     always_comb begin
@@ -157,6 +158,12 @@ module Control #(
                             read_addr  = param_2;
                             next_state = 2;
                         end
+                        `STA: begin
+                            rom_addr   = (param_1_immd == 1'b1) ? 2 : 4;
+                            write_addr = 0;
+                            read_addr  = param_1;
+                            next_state = 2;
+                        end
                         default: begin
                             rom_addr   = `ROM_NOTHING;
                             write_addr = 0;
@@ -177,6 +184,12 @@ module Control #(
                             rom_addr   = 5;
                             write_addr = param_1;
                             read_addr  = 0;
+                            next_state = `STATE_END;
+                        end
+                        `STA: begin
+                            rom_addr   = 6;
+                            write_addr = 0;
+                            read_addr  = param_2;
                             next_state = `STATE_END;
                         end
                         default: begin

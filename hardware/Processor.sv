@@ -90,22 +90,22 @@ module Processor #(
 
     ////////////////////////  Memory Access  ////////////////////////////
 
-    assign read_mem  = Control_Read ? 1 : 0;
-    assign write_mem = Control_Write ? 1 : 0;
+    assign read_mem  = Control_Read;
+    assign write_mem = Control_Write;
     always_latch begin
         if (MDR_Read) MDR = internal_databus;
         if (IR_Write) IR = internal_databus;
         if (Acc_Write && Reg_Write) Acc = internal_databus;
     end
 
-    assign internal_databus = read_mem ? data
+    assign internal_databus = Control_Read ? data
                                 : (ALU_Out_Write ? ALU_out
                                     : (IR_Read ? IR
                                         : ((Acc_Read && Reg_Read) ? Acc
                                             : {DATA_WIDTH {1'hz}})));
 
     assign address = Control_Read ? (Io_Read ? IR : PC) : (Control_Write ? IR : {ADDR_WIDTH{1'hz}});
-    assign data = write_mem ? internal_databus : {DATA_WIDTH{1'hz}};
+    assign data = Control_Write ? internal_databus : {DATA_WIDTH{1'hz}};
 
     //////////////////////////////////////////////////////////////////////
 

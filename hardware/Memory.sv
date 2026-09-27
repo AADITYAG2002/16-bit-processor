@@ -13,7 +13,7 @@ module Memory #(
 );
 
     logic [DATA_WIDTH - 1 : 0] read_addr;
-    logic [DATA_WIDTH - 1 : 0] mem[DEPTH];
+    logic [DATA_WIDTH - 1 : 0] mem[16];
 
     always_comb begin
         if (write) mem[addr] = data;

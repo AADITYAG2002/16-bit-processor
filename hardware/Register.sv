@@ -27,7 +27,6 @@ module Register #(
     output logic [DATA_WIDTH - 1 : 0] data_read
 );
 
-    // logic [4 * DATA_WIDTH - 1 : 0] register;
     register_file_t register_file;
 
     // debug
