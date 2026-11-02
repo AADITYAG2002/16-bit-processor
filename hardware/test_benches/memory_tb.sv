@@ -11,7 +11,7 @@ module memory_tb;
     logic write;
     logic read;
     logic [ADDR_WIDTH-1:0] addr;
-    logic [DATA_WIDTH-1:0] data;
+    wire [DATA_WIDTH-1:0] data;
     Memory u0 (
         .write(write),
         .read (read),
@@ -29,19 +29,23 @@ module memory_tb;
         {clk, write, read, addr, tb_data} = 0;
         $dumpfile("waveform.vcd");
         $dumpvars(0, memory_tb);
+    end
 
+    always @(posedge clk) begin
 
-        for (shortint i = 0; i < 16; i = i + 1) begin
-            repeat (1) @(posedge clk) addr = i;
-            write   = 1;
-            read    = 0;
-            tb_data = $urandom;
+        for (logic [DATA_WIDTH - 1 : 0] i = 0; i < 8; i = i + 1) begin
+            @(posedge clk);
+            addr    <= i;
+            write   <= 1;
+            read    <= 0;
+            tb_data <= $urandom;
         end
 
-        for (shortint i = 0; i < 16; i = i + 1) begin
-            repeat (1) @(posedge clk) addr = i;
-            write = 0;
-            read  = 1;
+        for (logic [DATA_WIDTH - 1 : 0] i = 0; i < 8; i = i + 1) begin
+            @(posedge clk);
+            addr  <= i;
+            write <= 0;
+            read  <= 1;
         end
 
         #20 $finish;

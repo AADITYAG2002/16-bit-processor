@@ -1,44 +1,40 @@
+`include "opcode.sv"
 `timescale 1ns / 100ps
 
 module Alu #(
     parameter unsigned DATA_WIDTH = 16
 ) (
-    input  logic [DATA_WIDTH - 1 : 0] A_reg,
-    input  logic [DATA_WIDTH - 1 : 0] B_reg,
-    input  logic [             3 : 0] op_select,
+    input  logic                      clk,
+    input                             ALU_Enable,
+    input  logic [DATA_WIDTH - 1 : 0] Input_A,
+    input  logic [DATA_WIDTH - 1 : 0] Input_B,
+    input  logic [             4 : 0] op_select,
     output logic [DATA_WIDTH - 1 : 0] ALU_output,
-    output bit                        Z_flag,
-    output bit                        C_flag
+    output reg   [             7 : 0] Flags
 );
-    typedef enum {
-        ADD     = 1,
-        SUB,
-        DIV,
-        MUL,
-        SHIFT_R,
-        SHIFT_L,
-        JNZ,
-        JZ,
-        JNC,
-        JC
-    } alu_op_codes_e;
 
     logic [DATA_WIDTH : 0] result;
 
     always_comb begin
         case (op_select)
-            ADD: result = A_reg + B_reg;
-            SUB: result = A_reg - B_reg;
-            DIV: result = A_reg / B_reg;
-            MUL: result = A_reg * B_reg;
-            SHIFT_L: result = A_reg << 1;
-            SHIFT_R: result = A_reg >> 1;
-            default: result = C_flag | A_reg;
+            `ADD: result = Input_A + Input_B;
+            `SUB: result = Input_A - Input_B;
+            `AND: result = Input_A & Input_B;
+            `OR: result = Input_A | Input_B;
+            `XOR: result = Input_A ^ Input_B;
+            `NOT: result = ~Input_A;
+            default: result = {(DATA_WIDTH + 1) {1'hz}};
         endcase
 
-        ALU_output = result[DATA_WIDTH-1 : 0];
-        C_flag     = result[DATA_WIDTH];
-        Z_flag     = (result == 0) ? 1'b1 : 1'b0;
+        if (ALU_Enable) begin
+            Flags[0] = (result[DATA_WIDTH-1 : 0] == 0);
+            Flags[1] = result[DATA_WIDTH];
+        end
+
+    end
+
+    always @(posedge clk) begin
+        ALU_output <= result[DATA_WIDTH-1 : 0];
     end
 
 endmodule

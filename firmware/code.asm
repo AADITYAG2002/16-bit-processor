@@ -1,0 +1,7 @@
+MOV D, 0xCAFE
+MOV SP, 0xA
+
+PUSH D
+POP E
+
+HLT

@@ -33,13 +33,13 @@ module Processor_tb;
     initial begin
         clk     = 1;
         reset_n = 1;
-        $readmemh("memory.hex", memory.mem, 0);
+        $readmemh("memory.hex", memory.bsram.mem, 0);
 
         #3 reset_n = 0;
         #2 reset_n = 1;
-        u0.register.register_file <= 64'h0000000BDEADCAFE;
+        // u0.register.register_file = 64'h0000000BDEADCAFE;
 
-        #60 $finish;
+        #100 $finish;
     end
     initial begin
         $dumpfile("waveform.vcd");

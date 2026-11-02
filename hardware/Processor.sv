@@ -14,38 +14,55 @@ module Processor #(
 
     ////////////////////////  Declaration & Inittialization  ///////////////////////////////
     // Registers & flags
-    reg [ADDR_WIDTH - 1 : 0] PC_debug, SP_debug;
-    reg [DATA_WIDTH - 1 : 0] MDR, IR, Acc;
-    logic Z_flag, C_flag;
+    reg [DATA_WIDTH - 1 : 0] MDR, IR;
+    reg [7 : 0] Flags;
 
-    let PC = register.register_file.reg_list.PC;
-    let SP = register.register_file.reg_list.SP;
-    assign PC_debug = PC;
-    assign SP_debug = SP;
+
 
     // control signals
     logic Halt;
-    logic Acc_Write, Acc_Read, Reg_Write, Reg_Read;
-    logic [2 : 0] Reg_Read_Addr, Reg_Write_Addr;
+    logic Reg_Write, Reg_Read;
+    logic [3 : 0] Reg_Read_Addr, Reg_Write_Addr;
     logic Control_Read, IR_Write, IR_Read, MDR_Read, Io_Read, Control_Write;
     wire [2 : 0] PC_Sel;
-    logic ALU_In_1, ALU_In_2, ALU_Out_Write;
-    logic [3 : 0] ALU_Op_Sel;
+    logic PC_Jump;
+    logic ALU_Enable, ALU_in_B_Sel, ALU_Out_Write;
+    logic [4 : 0] ALU_Op_Sel;
 
     // interconnect wires & reg
     wire [DATA_WIDTH - 1 : 0] internal_databus;
     logic [ADDR_WIDTH - 1 : 0] next_pc;
-    logic [DATA_WIDTH - 1 : 0] ALU_Src_A, ALU_Src_B, ALU_out;
+    logic [DATA_WIDTH - 1 : 0] ALU_out;
+    logic [DATA_WIDTH - 1 : 0] ALU_in_B;
 
-    // ALU
-    // Alu alu (
-    //     .A_reg     (ALU_Src_A),
-    //     .B_reg     (ALU_Src_B),
-    //     .op_select (ALU_Op_Sel),
-    //     .ALU_output(ALU_out),
-    //     .Z_flag    (Z_flag),
-    //     .C_flag    (C_flag)
-    // );
+    // Control Unit
+    Control control (
+        .reset_n(reset_n),
+        .clk    (clk),
+        .MDR    (MDR),
+        .Flags  (Flags),
+
+        .Halt         (Halt),
+        .Reg_Write    (Reg_Write),
+        .Reg_Read     (Reg_Read),
+        .Control_Read (Control_Read),
+        .Control_Write(Control_Write),
+        .Io_Read      (Io_Read),
+        .IR_Write     (IR_Write),
+        .IR_Read      (IR_Read),
+        .MDR_Read     (MDR_Read),
+
+        .Reg_Read_Addr (Reg_Read_Addr),
+        .Reg_Write_Addr(Reg_Write_Addr),
+
+        .PC_Sel (PC_Sel),
+        .PC_Jump(PC_Jump),
+
+        .ALU_Enable   (ALU_Enable),
+        .ALU_Op_Sel   (ALU_Op_Sel),
+        .ALU_in_B_Sel (ALU_in_B_Sel),
+        .ALU_Out_Write(ALU_Out_Write)
+    );
 
     // Register File
     Register register (
@@ -59,34 +76,34 @@ module Processor #(
         .addr_write(Reg_Write_Addr)
     );
 
-    // Control Unit
-    Control control (
-        .reset_n       (reset_n),
-        .clk           (clk),
-        .MDR           (MDR),
-        .Halt          (Halt),
-        .Acc_Read      (Acc_Read),
-        .Acc_Write     (Acc_Write),
-        .Reg_Write     (Reg_Write),
-        .Reg_Read      (Reg_Read),
-        .Control_Read  (Control_Read),
-        .Control_Write (Control_Write),
-        .Io_Read       (Io_Read),
-        .IR_Write      (IR_Write),
-        .IR_Read       (IR_Read),
-        .MDR_Read      (MDR_Read),
-        .PC_Sel        (PC_Sel),
-        .Z_flag        (Z_flag),
-        .C_flag        (C_flag),
-        .ALU_In_1      (ALU_In_1),
-        .ALU_In_2      (ALU_In_2),
-        .ALU_Op_Sel    (ALU_Op_Sel),
-        .ALU_Out_Write (ALU_Out_Write),
-        .Reg_Read_Addr (Reg_Read_Addr),
-        .Reg_Write_Addr(Reg_Write_Addr)
+    let PC = register.register_file.reg_list.PC;
+    let Acc = register.register_file.reg_list.A_reg;
+
+    // ALU
+    Alu alu (
+        .clk       (clk),
+        .ALU_Enable(ALU_Enable),
+        .Input_A   (Acc),
+        .Input_B   (ALU_in_B),
+        .op_select (ALU_Op_Sel),
+        .Flags     (Flags),
+        .ALU_output(ALU_out)
     );
 
     ////////////////////////////////////////////////////////////////////////////////////////
+
+    ////////////////////////  ALU  ////////////////////////////
+
+    always_comb begin
+        case (ALU_in_B_Sel)
+            0: ALU_in_B = IR;
+            1: ALU_in_B = 1'b1;
+            default: begin
+            end
+        endcase
+    end
+
+    ///////////////////////////////////////////////////////////
 
     ////////////////////////  Memory Access  ////////////////////////////
 
@@ -95,50 +112,25 @@ module Processor #(
     always_latch begin
         if (MDR_Read) MDR = internal_databus;
         if (IR_Write) IR = internal_databus;
-        if (Acc_Write && Reg_Write) Acc = internal_databus;
     end
 
     assign internal_databus = Control_Read ? data
                                 : (ALU_Out_Write ? ALU_out
                                     : (IR_Read ? IR
-                                        : ((Acc_Read && Reg_Read) ? Acc
-                                            : {DATA_WIDTH {1'hz}})));
+                                        : {DATA_WIDTH{1'hz}}));
 
     assign address = Control_Read ? (Io_Read ? IR : PC) : (Control_Write ? IR : {ADDR_WIDTH{1'hz}});
     assign data = Control_Write ? internal_databus : {DATA_WIDTH{1'hz}};
 
     //////////////////////////////////////////////////////////////////////
 
-    ////////////////////////  ALU  ////////////////////////////
-
-    // always_comb begin
-    //     case (ALU_In_1)
-    //         1: ALU_Src_A = internal_databus;
-    //         default: begin
-    //             ALU_Src_A = {DATA_WIDTH{1'b0}};
-    //         end
-    //     endcase
-    //     case (ALU_In_2)
-    //         0: ALU_Src_B = internal_databus;
-    //         1: ALU_Src_B = IR;
-    //         default: begin
-    //             ALU_Src_B = {DATA_WIDTH{1'b0}};
-    //         end
-    //     endcase
-    // end
-
-    ///////////////////////////////////////////////////////////
-
-    ////////////////////////  CPU reset Program Counter ////////////////////////////
+    //////////////////////// Program Counter ////////////////////////////
 
     always_comb begin
         case (PC_Sel)
             0:       next_pc = PC + {ADDR_WIDTH{1'b0}};
-            1:       next_pc = PC + 1'b1;
-            2:       next_pc = Z_flag ? IR : PC + 1'b1;
-            3:       next_pc = (!Z_flag) ? IR : PC + 1'b1;
-            4:       next_pc = (C_flag) ? IR : PC + 1'b1;
-            5:       next_pc = (!C_flag) ? IR : PC + 1'b1;
+            1:       next_pc = PC + 1;
+            2:       next_pc = PC_Jump ? IR : PC + 1;
             default: next_pc = PC + {ADDR_WIDTH{1'b0}};
         endcase
     end

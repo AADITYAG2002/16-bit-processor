@@ -8,63 +8,71 @@
 - 16-bit memory mapped IO port
 
 ## Internal Design
-- General Purpose Registers : A, B, C
+- General Purpose Registers : A, B, C, D, E
 - System Registers          : PC, SP, IR, MDR
-- System Flags              : CF, ZF
+- System Flags              : O, C, Z
 
 
 ### ISA 
+    MMIO OOOO DDDD SSSS
+
+    M : Mode    => 0 = I/O, 1 = Data Transfer, 2 = ALU, 3 = Jump
+    I : Immediate Data
+    O : Opcode
+    D : Destination Register
+    S : Source Register
+
 
     Category               ISA                    Opcode                               Description               
 
-    Atomic                  NOP                 .... .... .... ....                     Do nothing for 1 Clk Cycle
-                            HLT                 1111 1111 1111 1111                     Stop Execution
+    I/O                     NOP                 .... .... .... ....                     Do nothing for 1 Clk Cycle
+                            HLT                 ...1 1111 .... ....                     Stop Execution
 
 
-    Data Transfer           MOV Rd, Rs / Immd   .... ...1 .DDD ISSS     data             Rd <- Rs / data
-                            LDA Rd, Rs / Immd   .... ..1. .DDD ISSS     data             Rd <- [Rs / data]
-                            STA Rd / Immd, Rs   .... ..11 IDDD .SSS     data             [Rd / data] <- Rs
+    Data Transfer           MOV Rd, Rs / Immd   .1I. ...1 DDDD SSSS     data             Rd <- Rs / data
+                            LDA Rd, Rs / Immd   .1I. ..1. DDDD SSSS     data             Rd <- [Rs / data]
+                            STA Rd / Immd, Rs   .1I. ..11 DDDD SSSS     data             [Rd / data] <- Rs
+                            PUSH Rs             .1.. .1.. .... SSSS                      [SP--] <- Rs
+                            POP Rd              .1.. .1.1 DDDD ....                      Rd <- [++SP]
 
 
-    Arithmetic & Logic      ADD Rs / Immd       .... .1.. .... ISSS     data             A <- A + Rs / data
-                            SUB Rs / Immd       .... .1.1 .... ISSS     data             A <- A + Rs / data
-                            MUL Rs / Immd       .... .11. .... ISSS     data             A, B <- A * Rs / data
-                            DIV Rs / Immd       .... .111 .... ISSS     data             A, B <- A / Rs / data
+    Arithmetic & Logic      ADD Rs / Immd       1.I. .... .... SSSS     data             A <- A + Rs / data
+                            SUB Rs / Immd       1.I. ...1 .... SSSS     data             A <- A + Rs / data
+                            MUL Rs / Immd       1.I. ..1. .... SSSS     data             A, B <- A * Rs / data
+                            DIV Rs / Immd       1.I. ..11 .... SSSS     data             A, B <- A / Rs / data
 
-                            AND Rd, Rs / Immd   .... 1... .... ISSS     data             A <- A & Rs / data
-                            OR  Rd, Rs / Immd   .... 1..1 .... ISSS     data             A <- A | Rs / data
-                            XOR Rd, Rs / Immd   .... 1.1. .... ISSS     data             A <- A ^ Rs / data
-                            NOT Rd              .... 1.11 .... .SSS     data             Rs <- ~Rs
-                            RRS                 .... 11.. .... ....                      A <- A >> 1
-                            RRC                 .... 11.. .... ...1                      CF, A <- A >> 1
-                            LLS                 .... 11.. .... ..1.                      A <- A << 1
-                            LLC                 .... 11.. .... ..11                      CF, A <- A << 1
-
-                            PUSH Rs             .... 11.1 .... .SSS                      [SP--] <- Rs
-                            POP Rd              .... 111. .DDD ....                      Rd <- [++SP]
+                            AND Rd, Rs / Immd   1.I1 .... .... SSSS     data             A <- A & Rs / data
+                            OR  Rd, Rs / Immd   1.I1 ...1 .... SSSS     data             A <- A | Rs / data
+                            XOR Rd, Rs / Immd   1.I1 ..1. .... SSSS     data             A <- A ^ Rs / data
+                            NOT                 1..1 ..11 .... ....                      A <- A
+                            RRS                 1..1 .1.. .... ....                      A <- A >> 1
+                            RRC                 1..1 .1.1 .... ....                      CF, A <- A >> 1
+                            LLS                 1..1 .11. .... ....                      A <- A << 1
+                            LLC                 1..1 .111 .... ....                      CF, A <- A << 1
 
 
-    Jump                    JMP addr            1... .... .... ....     addr             PC <- addr
-                            JNZ addr            1... .... ...1 ....     addr             PC <- addr if ZF == 0
-                            JZ  addr            1... .... ...1 ...1     addr             PC <- addr if ZF != 0
-                            JNC addr            1... .... ..1. ....     addr             PC <- addr if CF == 0
-                            JC  addr            1... .... ..1. ...1     addr             PC <- addr if CF != 0
-                            CALL addr           1.1. .... .... ....     addr             [SP--] <- PC
+    Jump                    JMP addr            111. .... .... ....     addr             PC <- addr
+                            JNZ addr            111. ...1 .... ....     addr             PC <- addr if ZF == 0
+                            JZ  addr            111. ..1. .... ....     addr             PC <- addr if ZF != 0
+                            JNC addr            111. ..11 .... ....     addr             PC <- addr if CF == 0
+                            JC  addr            111. .1.. .... ....     addr             PC <- addr if CF != 0
+
+                            CALL addr           1111 .... .... ....     addr             [SP--] <- PC
                                                                                          PC <- addr
-                            RET                 1.11 .... .... ....                      PC <- [++SP]
+                            RET                 11.1 ...1 .... ....                      PC <- [++SP]
 
 ## Register Encoding |  ALU Encoding
 -----------------------------------------------------------------------------------------------------
-    no_reg  000      |          no_op   0000
-    B       001      |          ADD     0001
-    C       010      |          SUB     0010
-    D       011      |          MUL     0011
-    E       100      |          DIV     0100
-    PC      101      |          AND     1000
-    SP      110      |          OR      1001
-    A       111      |          XOR     1010
-    IR     1000      |          NOT     1011
-                     |          RRS     1100
-                     |          RRC     1101
-                     |          LLS     1110
-                     |          LLC     1111
+    A      0000      |          
+    B      0001      |          ADD     00000
+    C      0010      |          SUB     00001
+    D      0011      |          MUL     00010
+    E      0100      |          DIV     00011
+    SP     0101      |          AND     10000
+    PC     0110      |          OR      10001
+    Flags  0111      |          XOR     10010
+                     |          NOT     10011
+                     |          RRS     10100
+                     |          RRC     10101
+                     |          LLS     10110
+                     |          LLC     10111
