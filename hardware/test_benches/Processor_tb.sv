@@ -39,7 +39,7 @@ module Processor_tb;
         #2 reset_n = 1;
         // u0.register.register_file = 64'h0000000BDEADCAFE;
 
-        #100 $finish;
+        #200 $finish;
     end
     initial begin
         $dumpfile("waveform.vcd");

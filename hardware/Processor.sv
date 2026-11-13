@@ -14,7 +14,7 @@ module Processor #(
 
     ////////////////////////  Declaration & Inittialization  ///////////////////////////////
     // Registers & flags
-    reg [DATA_WIDTH - 1 : 0] MDR, IR;
+    reg [DATA_WIDTH - 1 : 0] MAR, MDR, CIR, IR, PC;
     reg [7 : 0] Flags;
 
 
@@ -23,7 +23,16 @@ module Processor #(
     logic Halt;
     logic Reg_Write, Reg_Read;
     logic [3 : 0] Reg_Read_Addr, Reg_Write_Addr;
-    logic Control_Read, IR_Write, IR_Read, MDR_Read, Io_Read, Control_Write;
+    logic
+        Control_Read,
+        Control_Write,
+        IR_Write,
+        IR_Read,
+        MDR_Read,
+        MDR_Write,
+        MAR_Write,
+        Io_Read_Write,
+        CIR_Write;
     wire [2 : 0] PC_Sel;
     logic PC_Jump;
     logic ALU_Enable, ALU_in_B_Sel, ALU_Out_Write;
@@ -39,21 +48,27 @@ module Processor #(
     Control control (
         .reset_n(reset_n),
         .clk    (clk),
-        .MDR    (MDR),
+        .CIR    (CIR),
         .Flags  (Flags),
 
-        .Halt         (Halt),
-        .Reg_Write    (Reg_Write),
-        .Reg_Read     (Reg_Read),
-        .Control_Read (Control_Read),
-        .Control_Write(Control_Write),
-        .Io_Read      (Io_Read),
-        .IR_Write     (IR_Write),
-        .IR_Read      (IR_Read),
-        .MDR_Read     (MDR_Read),
+        .Halt(Halt),
 
+        .Reg_Write     (Reg_Write),
+        .Reg_Read      (Reg_Read),
         .Reg_Read_Addr (Reg_Read_Addr),
         .Reg_Write_Addr(Reg_Write_Addr),
+
+        .Read_Mem     (read_mem),
+        .Write_Mem    (write_mem),
+        .Control_Read (Control_Read),
+        .Control_Write(Control_Write),
+        .Io_Read_Write(Io_Read_Write),
+        .IR_Write     (IR_Write),
+        .IR_Read      (IR_Read),
+        .CIR_Write    (CIR_Write),
+        .MDR_Read     (MDR_Read),
+        .MDR_Write    (MDR_Write),
+        .MAR_Write    (MAR_Write),
 
         .PC_Sel (PC_Sel),
         .PC_Jump(PC_Jump),
@@ -76,7 +91,6 @@ module Processor #(
         .addr_write(Reg_Write_Addr)
     );
 
-    let PC = register.register_file.reg_list.PC;
     let Acc = register.register_file.reg_list.A_reg;
 
     // ALU
@@ -97,7 +111,7 @@ module Processor #(
     always_comb begin
         case (ALU_in_B_Sel)
             0: ALU_in_B = IR;
-            1: ALU_in_B = 1'b1;
+            1: ALU_in_B = 1;
             default: begin
             end
         endcase
@@ -107,20 +121,32 @@ module Processor #(
 
     ////////////////////////  Memory Access  ////////////////////////////
 
-    assign read_mem  = Control_Read;
-    assign write_mem = Control_Write;
     always_latch begin
-        if (MDR_Read) MDR = internal_databus;
+        if (!reset_n) begin
+            MAR = {DATA_WIDTH{1'b0}};
+            IR  = {DATA_WIDTH{1'b0}};
+            CIR = {DATA_WIDTH{1'b0}};
+            MDR = {DATA_WIDTH{1'b0}};
+        end
+        if (MAR_Write) MAR = Io_Read_Write ? IR : PC;
         if (IR_Write) IR = internal_databus;
+        if (CIR_Write) CIR = MDR;
+        if (Control_Read) MDR = data;
+        else if (MDR_Write) MDR = internal_databus;
     end
 
-    assign internal_databus = Control_Read ? data
+    always_ff @(posedge clk) begin
+        address <= MAR;
+    end
+    assign data = Control_Write ? MDR : {DATA_WIDTH{1'hz}};
+
+    assign internal_databus = MDR_Read ? MDR
                                 : (ALU_Out_Write ? ALU_out
                                     : (IR_Read ? IR
                                         : {DATA_WIDTH{1'hz}}));
 
-    assign address = Control_Read ? (Io_Read ? IR : PC) : (Control_Write ? IR : {ADDR_WIDTH{1'hz}});
-    assign data = Control_Write ? internal_databus : {DATA_WIDTH{1'hz}};
+    // assign address = Control_Read ? (Io_Read ? IR : PC) : (Control_Write ? IR : {ADDR_WIDTH{1'hz}});
+    // assign data = Control_Write ? internal_databus : {DATA_WIDTH{1'hz}};
 
     //////////////////////////////////////////////////////////////////////
 

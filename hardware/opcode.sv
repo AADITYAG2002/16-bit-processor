@@ -39,7 +39,7 @@
 `define A_REG 4'b0000
 `define B_REG 4'b0001
 `define C_REG 4'b0010
-`define D_REG 4'b0001
+`define D_REG 4'b0011
 `define E_REG 4'b0100
 `define SP_REG 4'b0101
 `define PC_REG 4'b0110

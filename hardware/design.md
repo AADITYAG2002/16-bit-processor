@@ -30,8 +30,8 @@
 
 
     Data Transfer           MOV Rd, Rs / Immd   .1I. ...1 DDDD SSSS     data             Rd <- Rs / data
-                            LDA Rd, Rs / Immd   .1I. ..1. DDDD SSSS     data             Rd <- [Rs / data]
-                            STA Rd / Immd, Rs   .1I. ..11 DDDD SSSS     data             [Rd / data] <- Rs
+                            LDA Rd, Rs / Immd   .1I. ..1. DDDD SSSS     addr             Rd <- [Rs / addr]
+                            STA Rd / Immd, Rs   .1I. ..11 DDDD SSSS     addr             [Rd / addr] <- Rs
                             PUSH Rs             .1.. .1.. .... SSSS                      [SP--] <- Rs
                             POP Rd              .1.. .1.1 DDDD ....                      Rd <- [++SP]
 

@@ -123,10 +123,10 @@ class AssemblyParser:
                     | (dest_reg << 4)
                     | src_reg
                 )
-                print(f"{self.addr:04X} : {hex_val:04X}")
+                print(f"{hex_val:04X}")
                 self.addr += 1
                 if immd_bit:
-                    print(f"{self.addr:04X} : {immd_val:04X}")
+                    print(f"{immd_val:04X}")
                     self.addr += 1
 
             else:

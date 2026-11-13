@@ -4,7 +4,7 @@ module bsram #(
     parameter unsigned ADDR_WIDTH = 16,
     parameter unsigned DATA_WIDTH = 16,
     // parameter unsigned DEPTH = 16383
-    parameter unsigned DEPTH = 10
+    parameter unsigned DEPTH = 16
 ) (
     input  bit                    wre,
     input  logic                  clk,
@@ -37,6 +37,7 @@ module Memory #(
 );
 
     logic [DATA_WIDTH-1:0] data_out;
+    logic read_delay;
 
     bsram bsram (
         .clk     (clk),
@@ -46,6 +47,8 @@ module Memory #(
         .data_out(data_out)
     );
 
-    assign data = read ? data_out : {DATA_WIDTH{1'hz}};
+    always_ff @(posedge clk) read_delay <= read;
+
+    assign data = read_delay ? data_out : {DATA_WIDTH{1'hz}};
 
 endmodule

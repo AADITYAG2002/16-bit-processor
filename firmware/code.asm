@@ -1,7 +1,14 @@
 MOV D, 0xCAFE
-MOV SP, 0xA
+MOV E, 0xDEAD
 
-PUSH D
-POP E
+MOV B, 0xE
+STA B, E
+STA D, 0xF
+
+MOV D, B
+LDA A, D
+LDA B, 0xF
 
 HLT
+
+

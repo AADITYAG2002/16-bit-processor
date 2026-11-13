@@ -1,9 +1,9 @@
 `include "opcode.sv"
 
 `timescale 1ns / 100ps
-`define ROM_ADDR_SIZE 4
-`define ROM_DATA_SIZE 13
-`define ROM_NUM_INST_SIZE 11
+`define ROM_ADDR_SIZE 5
+`define ROM_DATA_SIZE 18
+`define ROM_NUM_INST_SIZE 16
 `define ROM_NOTHING `ROM_NUM_INST_SIZE - 1
 `define STATE_END 255
 
@@ -15,26 +15,36 @@ module ROM (
     localparam logic [`ROM_DATA_SIZE - 1 : 0] memory[`ROM_NUM_INST_SIZE] = {
         /*
          * Reg_Read, Reg_Write,
-         * Control_Read, Control_Write, Io_Read, IR_Write, IR_Read, MDR_Read, PC_Sel[2:0],
+         * Read_Mem, Write_Mem,
+         * Control_Read, Control_Write, Io_Read_Write, IR_Write, IR_Read, CIR_Write, MDR_Read, MDR_Write, MAR_Write,
+         * PC_Sel[2:0],
          * ALU_in_B_sel, ALU_Out_Write
          */
 
-        // Fetch
-        `ROM_DATA_SIZE'b0_0_1_0_0_0_0_1_001_0_0,  // MDR <- [PC]
+        // Fetch Instruction
+        /* 0  */ `ROM_DATA_SIZE'b0_0_0_0_0_0_0_0_0_0_0_0_1_001_0_0,  // MAR <- PC
+        /* 1  */ `ROM_DATA_SIZE'b0_0_1_0_0_0_0_0_0_0_0_0_0_000_0_0,  // address <- MAR
+        /* 2  */ `ROM_DATA_SIZE'b0_0_0_0_1_0_0_0_0_0_0_0_0_000_0_0,  // MDR <- data
+        /* 3  */ `ROM_DATA_SIZE'b0_0_0_0_0_0_0_0_0_1_1_0_0_000_0_0,  // CIR <- MDR
+
+        // Load / Store Value
+        /* 4  */ `ROM_DATA_SIZE'b0_0_0_0_0_0_1_0_0_0_0_0_1_000_0_0,  // MAR <- IR
+        /* 5  */ `ROM_DATA_SIZE'b0_0_0_0_0_0_0_1_0_0_1_0_0_000_0_0,  // IR <- MDR
+        /* 6  */ `ROM_DATA_SIZE'b0_1_0_0_0_0_0_0_0_0_1_0_0_000_0_0,  // Rd <- MDR
+        /* 7  */ `ROM_DATA_SIZE'b1_0_0_0_0_0_0_0_0_0_0_1_0_000_0_0,  // MDR <- Rs
+        /* 8  */ `ROM_DATA_SIZE'b0_0_0_1_0_1_0_0_0_0_0_0_0_000_0_0,  // data <- MDR
 
         // Decode & Execute
-        `ROM_DATA_SIZE'b1_1_0_0_0_0_0_0_000_0_0,  // Rd <- Rs
-        `ROM_DATA_SIZE'b0_0_1_0_0_1_0_0_001_0_0,  // IR <- data
-        `ROM_DATA_SIZE'b0_1_0_0_0_0_1_0_000_0_0,  // Rd <- IR
-        `ROM_DATA_SIZE'b1_0_0_0_0_1_0_0_000_0_0,  // IR <- Rs
-        `ROM_DATA_SIZE'b0_1_1_0_1_0_0_0_000_0_0,  // Rd <- [IR]
-        `ROM_DATA_SIZE'b1_0_0_1_0_0_0_0_000_0_0,  // [IR] <- Rs
-        `ROM_DATA_SIZE'b0_1_0_0_0_0_0_0_000_0_1,  // Rd <- ALU_out
-        `ROM_DATA_SIZE'b0_0_0_0_0_0_0_0_010_0_0,  // Jump
-        `ROM_DATA_SIZE'b0_0_0_0_0_0_0_0_000_1_0,  // ALU_in_B = 1
+        /* 9  */ `ROM_DATA_SIZE'b1_1_0_0_0_0_0_0_0_0_0_0_0_000_0_0,  // Rd <- Rs
+        /* 10 */ `ROM_DATA_SIZE'b0_1_0_0_0_0_0_0_1_0_0_0_0_000_0_0,  // Rd <- IR
+        /* 11 */ `ROM_DATA_SIZE'b1_0_0_0_0_0_0_1_0_0_0_0_0_000_0_0,  // IR <- Rs
+        /* 12 */ `ROM_DATA_SIZE'b0_1_0_0_0_0_0_0_0_0_0_0_0_000_0_1,  // Rd <- ALU_out
+        /* 13 */ `ROM_DATA_SIZE'b0_0_0_0_0_0_0_0_0_0_0_0_0_010_0_0,  // Jump
+        /* 14 */ `ROM_DATA_SIZE'b0_0_0_0_0_0_0_0_0_0_0_0_0_000_1_0,  // ALU_in_B = 1
+
 
         // END / RESET
-        `ROM_DATA_SIZE'b0_0_0_0_0_0_0_0_000_0_0  // Nothing
+        /* 15 */ `ROM_DATA_SIZE'b0_0_0_0_0_0_0_0_0_0_0_0_0_000_0_0  // Nothing
     };
 
     assign CTRL = memory[rom_addr];
@@ -46,23 +56,28 @@ module Control #(
 ) (
     input logic                      reset_n,
     input logic                      clk,
-    input logic [DATA_WIDTH - 1 : 0] MDR,
+    input logic [DATA_WIDTH - 1 : 0] CIR,
     input logic [             7 : 0] Flags,
 
 
     output logic Halt,
 
-    output logic Reg_Read,
-    output logic Reg_Write,
-    output logic Control_Read,
-    output logic Control_Write,
-    output logic Io_Read,
-    output logic IR_Write,
-    output logic IR_Read,
-    output logic MDR_Read,
-
+    output logic         Reg_Read,
+    output logic         Reg_Write,
     output logic [3 : 0] Reg_Read_Addr,
     output logic [3 : 0] Reg_Write_Addr,
+
+    output logic Read_Mem,
+    output logic Write_Mem,
+    output logic Control_Read,
+    output logic Control_Write,
+    output logic Io_Read_Write,
+    output logic IR_Write,
+    output logic IR_Read,
+    output logic CIR_Write,
+    output logic MDR_Read,
+    output logic MDR_Write,
+    output logic MAR_Write,
 
     output logic [2 : 0] PC_Sel,
     output logic         PC_Jump,
@@ -88,37 +103,20 @@ module Control #(
         .CTRL    (CTRL)
     );
 
-    assign {mode, immd, opcode, dest_reg, src_reg} = MDR;
+    assign {mode, immd, opcode, dest_reg, src_reg} = CIR;
 
     assign {Reg_Read, Reg_Write,
-            Control_Read, Control_Write, Io_Read, IR_Write, IR_Read, MDR_Read,
+            Read_Mem, Write_Mem, Control_Read, Control_Write, Io_Read_Write, IR_Write, IR_Read,
+            CIR_Write, MDR_Read, MDR_Write, MAR_Write,
             PC_Sel, ALU_in_B_Sel, ALU_Out_Write} = CTRL;
 
     always_comb begin
-        if ((state == 1) && (mode == `DATA_MODE) && (opcode == `PUSH)) begin
-            Reg_Read_Addr  = `SP_REG;
+        if ((state == 4) && (mode == `DATA_MODE) && (opcode == `STA)) begin
+            Reg_Read_Addr  = dest_reg;
             Reg_Write_Addr = `A_REG;
-        end else if ((state == 3) && (mode == `DATA_MODE) && (opcode == `PUSH)) begin
-            Reg_Read_Addr  = `A_REG;
-            Reg_Write_Addr = `SP_REG;
-        end else if ((state == 4) && (mode == `DATA_MODE) && (opcode == `PUSH)) begin
-            Reg_Read_Addr  = `SP_REG;
+        end else if ((state == 9) && (mode == `DATA_MODE) && (opcode == `STA) && (immd == 1'b1)) begin
+            Reg_Read_Addr  = dest_reg;
             Reg_Write_Addr = `A_REG;
-        end else if ((state == 5) && (mode == `DATA_MODE) && (opcode == `PUSH)) begin
-            Reg_Read_Addr  = src_reg;
-            Reg_Write_Addr = `A_REG;
-        end else if ((state == 1) && (mode == `DATA_MODE) && (opcode == `POP)) begin
-            Reg_Read_Addr  = `SP_REG;
-            Reg_Write_Addr = `A_REG;
-        end else if ((state == 2) && (mode == `DATA_MODE) && (opcode == `POP)) begin
-            Reg_Read_Addr  = `A_REG;
-            Reg_Write_Addr = dest_reg;
-        end else if ((state == 3) && (mode == `DATA_MODE) && (opcode == `POP)) begin
-            Reg_Read_Addr  = `SP_REG;
-            Reg_Write_Addr = `A_REG;
-        end else if ((state == 5) && (mode == `DATA_MODE) && (opcode == `POP)) begin
-            Reg_Read_Addr  = `A_REG;
-            Reg_Write_Addr = `SP_REG;
         end else begin
             Reg_Read_Addr  = src_reg;
             Reg_Write_Addr = dest_reg;
@@ -137,7 +135,7 @@ module Control #(
     always_comb begin
         logic c_flag, z_flag;
         {c_flag, z_flag} = Flags[1:0];
-        if ((mode == `JUMP_MODE) && (state == 3)) begin
+        if ((mode == `JUMP_MODE) && (state == 4)) begin
             case (opcode)
                 `JUMP: PC_Jump = 1;
                 `JUMP_NZ: PC_Jump = !z_flag;
@@ -156,10 +154,10 @@ module Control #(
 
     always_ff @(posedge clk) begin
         if (!reset_n) Halt <= 0;
-        else if ((state == 1) && (mode == `IO_MODE) && (opcode == `HLT)) Halt <= 1;
+        else if ((state == `STATE_END) && (mode == `IO_MODE) && (opcode == `HLT)) Halt <= 1;
     end
 
-    always_comb begin
+    always_latch begin
         if (!Halt) begin
             case (state)
                 // Fetch
@@ -167,9 +165,21 @@ module Control #(
                     rom_addr   = 0;
                     next_state = 1;
                 end
+                1: begin
+                    rom_addr   = 1;
+                    next_state = 2;
+                end
+                2: begin
+                    rom_addr   = 2;
+                    next_state = 3;
+                end
+                3: begin
+                    rom_addr   = 3;
+                    next_state = 4;
+                end
 
                 // Decode & Execute
-                1: begin
+                4: begin
                     case (mode)
                         `IO_MODE: begin
                             case (opcode)
@@ -182,47 +192,35 @@ module Control #(
                                     next_state = `STATE_END;
                                 end
                                 default: begin
-                                    rom_addr   = `ROM_NOTHING;
-                                    next_state = `STATE_END;
                                 end
                             endcase
                         end
                         `DATA_MODE: begin
                             case (opcode)
                                 `MOV: begin
-                                    rom_addr   = (immd == 1'b1) ? 2 : 1;
-                                    next_state = (immd == 1'b1) ? 2 : `STATE_END;
+                                    rom_addr   = (immd == 1'b1) ? 0 : 9;
+                                    next_state = (immd == 1'b1) ? 5 : `STATE_END;
                                 end
                                 `LDA: begin
-                                    rom_addr   = (immd == 1'b1) ? 2 : 4;
-                                    next_state = 2;
+                                    rom_addr   = (immd == 1'b1) ? 0 : 11;
+                                    next_state = (immd == 1'b1) ? 5 : 8;
                                 end
                                 `STA: begin
-                                    rom_addr   = (immd == 1'b1) ? 2 : 4;
-                                    next_state = 2;
-                                end
-                                `PUSH: begin
-                                    rom_addr   = 1;
-                                    next_state = 2;
-                                end
-                                `POP: begin
-                                    rom_addr   = 4;
-                                    next_state = 2;
+                                    rom_addr   = (immd == 1'b1) ? 0 : 11;
+                                    next_state = (immd == 1'b1) ? 5 : 8;
                                 end
                                 default: begin
-                                    rom_addr   = `ROM_NOTHING;
-                                    next_state = `STATE_END;
                                 end
                             endcase
                         end
                         `ALU_MODE: begin
                             case (opcode)
                                 `ADD, `SUB, `MUL, `DIV, `AND, `OR, `XOR: begin
-                                    rom_addr   = (immd == 1'b1) ? 2 : 4;
+                                    rom_addr   = (immd == 1'b1) ? 2 : 5;
                                     next_state = 2;
                                 end
                                 `NOT, `RRS, `RRC, `LLS, `LLC: begin
-                                    rom_addr   = 7;
+                                    rom_addr   = 8;
                                     next_state = `STATE_END;
                                 end
                                 default: begin
@@ -239,42 +237,32 @@ module Control #(
                         end
                     endcase
                 end
-                2: begin
+                5: begin
                     case (mode)
                         `IO_MODE: begin
                         end
                         `DATA_MODE: begin
                             case (opcode)
                                 `MOV: begin
-                                    rom_addr   = 3;
-                                    next_state = `STATE_END;
+                                    rom_addr   = 1;
+                                    next_state = 6;
                                 end
                                 `LDA: begin
-                                    rom_addr   = 5;
-                                    next_state = `STATE_END;
+                                    rom_addr   = 1;
+                                    next_state = 6;
                                 end
                                 `STA: begin
-                                    rom_addr   = 6;
-                                    next_state = `STATE_END;
-                                end
-                                `PUSH: begin
-                                    rom_addr   = 9;
-                                    next_state = 3;
-                                end
-                                `POP: begin
-                                    rom_addr   = 5;
-                                    next_state = 3;
+                                    rom_addr   = 1;
+                                    next_state = 6;
                                 end
                                 default: begin
-                                    rom_addr   = `ROM_NOTHING;
-                                    next_state = `STATE_END;
                                 end
                             endcase
                         end
                         `ALU_MODE: begin
                             case (opcode)
                                 `ADD, `SUB, `MUL, `DIV, `AND, `OR, `XOR: begin
-                                    rom_addr   = 7;
+                                    rom_addr   = 8;
                                     next_state = `STATE_END;
                                 end
                                 default: begin
@@ -284,28 +272,30 @@ module Control #(
                             endcase
                         end
                         `JUMP_MODE: begin
-                            rom_addr   = 8;
+                            rom_addr   = 9;
                             next_state = `STATE_END;
                         end
                         default: begin
                         end
                     endcase
                 end
-                3: begin
+                6: begin
                     case (mode)
                         `DATA_MODE: begin
                             case (opcode)
-                                `PUSH: begin
-                                    rom_addr   = 7;
-                                    next_state = 4;
+                                `MOV: begin
+                                    rom_addr   = 2;
+                                    next_state = 7;
                                 end
-                                `POP: begin
-                                    rom_addr   = 1;
-                                    next_state = 4;
+                                `LDA: begin
+                                    rom_addr   = 2;
+                                    next_state = 7;
+                                end
+                                `STA: begin
+                                    rom_addr   = 2;
+                                    next_state = 7;
                                 end
                                 default: begin
-                                    rom_addr   = `ROM_NOTHING;
-                                    next_state = `STATE_END;
                                 end
                             endcase
                         end
@@ -313,43 +303,99 @@ module Control #(
                         end
                     endcase
                 end
-                4: begin
+                7: begin
                     case (mode)
                         `DATA_MODE: begin
                             case (opcode)
-                                `PUSH: begin
-                                    rom_addr   = 4;
-                                    next_state = 5;
-                                end
-                                `POP: begin
-                                    rom_addr   = 9;
-                                    next_state = 5;
-                                end
-                                default: begin
-                                    rom_addr   = `ROM_NOTHING;
-                                    next_state = `STATE_END;
-                                end
-                            endcase
-                        end
-                        default: begin
-                        end
-                    endcase
-                end
-                5: begin
-                    case (mode)
-                        `DATA_MODE: begin
-                            case (opcode)
-                                `PUSH: begin
+                                `MOV: begin
                                     rom_addr   = 6;
                                     next_state = `STATE_END;
                                 end
-                                `POP: begin
+                                `LDA: begin
+                                    rom_addr   = 5;
+                                    next_state = 8;
+                                end
+                                `STA: begin
+                                    rom_addr   = 5;
+                                    next_state = 8;
+                                end
+                                default: begin
+                                end
+                            endcase
+                        end
+                        default: begin
+                        end
+                    endcase
+                end
+                8: begin
+                    case (mode)
+                        `DATA_MODE: begin
+                            case (opcode)
+                                `LDA: begin
+                                    rom_addr   = 4;
+                                    next_state = 9;
+                                end
+                                `STA: begin
+                                    rom_addr   = 4;
+                                    next_state = 9;
+                                end
+                                default: begin
+                                end
+                            endcase
+                        end
+                        default: begin
+                        end
+                    endcase
+                end
+                9: begin
+                    case (mode)
+                        `DATA_MODE: begin
+                            case (opcode)
+                                `LDA: begin
+                                    rom_addr   = 1;
+                                    next_state = 10;
+                                end
+                                `STA: begin
                                     rom_addr   = 7;
+                                    next_state = 10;
+                                end
+                                default: begin
+                                end
+                            endcase
+                        end
+                        default: begin
+                        end
+                    endcase
+                end
+                10: begin
+                    case (mode)
+                        `DATA_MODE: begin
+                            case (opcode)
+                                `LDA: begin
+                                    rom_addr   = 2;
+                                    next_state = 11;
+                                end
+                                `STA: begin
+                                    rom_addr   = 8;
                                     next_state = `STATE_END;
                                 end
                                 default: begin
-                                    rom_addr   = `ROM_NOTHING;
+                                end
+                            endcase
+                        end
+                        default: begin
+                        end
+                    endcase
+                end
+                11: begin
+                    case (mode)
+                        `DATA_MODE: begin
+                            case (opcode)
+                                `LDA: begin
+                                    rom_addr   = 6;
                                     next_state = `STATE_END;
+                                end
+                                default: begin
                                 end
                             endcase
                         end
