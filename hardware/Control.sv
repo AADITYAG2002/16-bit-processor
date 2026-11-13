@@ -114,9 +114,6 @@ module Control #(
         if ((state == 4) && (mode == `DATA_MODE) && (opcode == `STA)) begin
             Reg_Read_Addr  = dest_reg;
             Reg_Write_Addr = `A_REG;
-        end else if ((state == 9) && (mode == `DATA_MODE) && (opcode == `STA) && (immd == 1'b1)) begin
-            Reg_Read_Addr  = dest_reg;
-            Reg_Write_Addr = `A_REG;
         end else begin
             Reg_Read_Addr  = src_reg;
             Reg_Write_Addr = dest_reg;

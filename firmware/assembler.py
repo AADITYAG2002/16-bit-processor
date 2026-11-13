@@ -54,7 +54,7 @@ class AssemblyParser:
         self.label = re.compile(r"(\w+):", re.M)
         self.preprocessor = re.compile(r"\.(\w+) +(\w+)", re.M)
         self.immd_value = re.compile(
-            r"[-+]?(\w{2,}|0[xX][\dA-Fa-f]+|0[0-7]*|\d+)$", re.M
+            r"[-+]?(\w{2,}|0[xX][\dA-Fa-f]+|0[0-7]*|\d+)", re.M
         )
         self.instr = re.compile(r"(\w+) *(\w*)( *, *|)(\w*)", re.M)
 

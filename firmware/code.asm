@@ -3,7 +3,7 @@ MOV E, 0xDEAD
 
 MOV B, 0xE
 STA B, E
-STA D, 0xF
+STA 0xF, D
 
 MOV D, B
 LDA A, D
