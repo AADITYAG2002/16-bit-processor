@@ -104,7 +104,8 @@ class AssemblyParser:
                 immd_val = 0
                 if immd_match := self.immd_value.search(match[0][match.end(1) :]):
                     immd_bit = 0b1
-                    if label := self.labels.get(immd_match[0]):
+                    label = self.labels.get(immd_match[0])
+                    if label != None:
                         immd_val = label
                     else:
                         immd_val = int(immd_match[0], 0)

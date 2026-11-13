@@ -145,9 +145,6 @@ module Processor #(
                                     : (IR_Read ? IR
                                         : {DATA_WIDTH{1'hz}}));
 
-    // assign address = Control_Read ? (Io_Read ? IR : PC) : (Control_Write ? IR : {ADDR_WIDTH{1'hz}});
-    // assign data = Control_Write ? internal_databus : {DATA_WIDTH{1'hz}};
-
     //////////////////////////////////////////////////////////////////////
 
     //////////////////////// Program Counter ////////////////////////////
@@ -156,7 +153,7 @@ module Processor #(
         case (PC_Sel)
             0:       next_pc = PC + {ADDR_WIDTH{1'b0}};
             1:       next_pc = PC + 1;
-            2:       next_pc = PC_Jump ? IR : PC + 1;
+            2:       next_pc = PC_Jump ? IR : PC;
             default: next_pc = PC + {ADDR_WIDTH{1'b0}};
         endcase
     end

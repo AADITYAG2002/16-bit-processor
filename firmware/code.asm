@@ -1,14 +1,6 @@
-MOV D, 0xCAFE
-MOV E, 0xDEAD
-
-MOV B, 0xE
-STA B, E
-STA 0xF, D
-
-MOV D, B
-LDA A, D
-LDA B, 0xF
-
+loop:
+    NOP
+    JMP loop
 HLT
 
 

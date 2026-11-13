@@ -25,12 +25,13 @@ module Alu #(
             `NOT: result = ~Input_A;
             default: result = {(DATA_WIDTH + 1) {1'hz}};
         endcase
+    end
 
+    always_latch begin
         if (ALU_Enable) begin
             Flags[0] = (result[DATA_WIDTH-1 : 0] == 0);
             Flags[1] = result[DATA_WIDTH];
         end
-
     end
 
     always @(posedge clk) begin

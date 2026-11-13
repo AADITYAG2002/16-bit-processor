@@ -132,7 +132,7 @@ module Control #(
     always_comb begin
         logic c_flag, z_flag;
         {c_flag, z_flag} = Flags[1:0];
-        if ((mode == `JUMP_MODE) && (state == 4)) begin
+        if ((mode == `JUMP_MODE) && (state == 8)) begin
             case (opcode)
                 `JUMP: PC_Jump = 1;
                 `JUMP_NZ: PC_Jump = !z_flag;
@@ -227,8 +227,8 @@ module Control #(
                             endcase
                         end
                         `JUMP_MODE: begin
-                            rom_addr   = 2;
-                            next_state = 2;
+                            rom_addr   = 0;
+                            next_state = 5;
                         end
                         default: begin
                         end
@@ -269,8 +269,8 @@ module Control #(
                             endcase
                         end
                         `JUMP_MODE: begin
-                            rom_addr   = 9;
-                            next_state = `STATE_END;
+                            rom_addr   = 1;
+                            next_state = 6;
                         end
                         default: begin
                         end
@@ -296,6 +296,10 @@ module Control #(
                                 end
                             endcase
                         end
+                        `JUMP_MODE: begin
+                            rom_addr   = 2;
+                            next_state = 7;
+                        end
                         default: begin
                         end
                     endcase
@@ -320,6 +324,10 @@ module Control #(
                                 end
                             endcase
                         end
+                        `JUMP_MODE: begin
+                            rom_addr   = 5;
+                            next_state = 8;
+                        end
                         default: begin
                         end
                     endcase
@@ -339,6 +347,10 @@ module Control #(
                                 default: begin
                                 end
                             endcase
+                        end
+                        `JUMP_MODE: begin
+                            rom_addr   = 13;
+                            next_state = `STATE_END;
                         end
                         default: begin
                         end
