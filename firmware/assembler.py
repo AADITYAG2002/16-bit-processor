@@ -34,13 +34,24 @@ OPCODES = {
 }
 
 REGISTERS = {
-    "A": 0b0000,
-    "B": 0b0001,
-    "C": 0b0010,
-    "D": 0b0011,
-    "E": 0b0100,
-    "SP": 0b1101,
-    "PC": 0b1110,
+    "R0": 0b0000,
+    "R1": 0b0001,
+    "R2": 0b0010,
+    "R3": 0b0011,
+    "R4": 0b0100,
+    "R5": 0b0101,
+    "R6": 0b0110,
+    "R7": 0b0111,
+    "R8": 0b1000,
+    "R9": 0b1001,
+    "R10": 0b1010,
+    "R11": 0b1011,
+    "R12": 0b1100,
+    "R13": 0b1101,
+    "R14": 0b1110,
+    "SP": 0b1110,
+    # "R15": 0b1111,
+    # "PC": 0b1111,
 }
 
 
@@ -54,7 +65,7 @@ class AssemblyParser:
         self.label = re.compile(r"(\w+):", re.M)
         self.preprocessor = re.compile(r"\.(\w+) +(\w+)", re.M)
         self.immd_value = re.compile(
-            r"[-+]?(\w{2,}|0[xX][\dA-Fa-f]+|0[0-7]*|\d+)", re.M
+            r"[-+]?(\w{3,}|0[xX][\dA-Fa-f]+|0[0-7]*|(?<!\w)\d+)", re.M
         )
         self.instr = re.compile(r"(\w+) *(\w*)( *, *|)(\w*)", re.M)
 
@@ -102,6 +113,8 @@ class AssemblyParser:
                 mode, opcode = OPCODES[match[1].upper()]
                 immd_bit = 0b0
                 immd_val = 0
+                dest_reg = 0
+                src_reg = 0
                 if immd_match := self.immd_value.search(match[0][match.end(1) :]):
                     immd_bit = 0b1
                     label = self.labels.get(immd_match[0])
@@ -110,12 +123,55 @@ class AssemblyParser:
                     else:
                         immd_val = int(immd_match[0], 0)
 
-                dest_reg = REGISTERS.get(match[2].upper())
-                if not dest_reg:
-                    dest_reg = 0
-                src_reg = REGISTERS.get(match[4].upper())
-                if not src_reg:
-                    src_reg = 0
+                param_1 = REGISTERS.get(match[2].upper())
+                param_2 = REGISTERS.get(match[4].upper())
+
+                match (param_1 is not None) << 1 | (param_2 is not None):
+                    case 0:
+                        # !Rd, !Rs
+                        dest_reg = 0
+                        src_reg = 0
+                    case 1:
+                        # !Rd, Rs
+                        src_reg = param_2
+                    case 2:
+                        # Rd, !Rs
+                        if match[1].upper() in (
+                            "PUSH",
+                            "ADD",
+                            "SUB",
+                            "MUL",
+                            "DIV",
+                            "AND",
+                            "OR",
+                            "XOR",
+                        ):
+                            src_reg = param_1
+                        # Rs
+                        else:
+                            dest_reg = param_1
+                    case 3:
+                        # Rd, Rs
+                        dest_reg = param_1
+                        src_reg = param_2
+                    case _:
+                        dest_reg = 0
+                        src_reg = 0
+
+                if match[1].upper() in (
+                    "ADD",
+                    "SUB",
+                    "MUL",
+                    "DIV",
+                    "AND",
+                    "OR",
+                    "XOR",
+                    "RRS",
+                    "RRC",
+                    "LLS",
+                    "LLC",
+                ):
+                    dest_reg = REGISTERS.get("R1")
 
                 hex_val = (
                     (mode << 14)

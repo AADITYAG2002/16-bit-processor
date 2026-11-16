@@ -1,10 +1,10 @@
 `include "opcode.sv"
 
 `timescale 1ns / 100ps
-`define ROM_ADDR_SIZE 5
+`define ROM_ADDR_SIZE 4
 `define ROM_DATA_SIZE 18
 `define ROM_NUM_INST_SIZE 16
-`define ROM_NOTHING `ROM_NUM_INST_SIZE - 1
+`define ROM_NOTHING 15          // ROM_NUM_INST_SIZE - 1
 `define STATE_END 255
 
 module ROM (
@@ -113,7 +113,7 @@ module Control #(
     always_comb begin
         if ((state == 4) && (mode == `DATA_MODE) && (opcode == `STA)) begin
             Reg_Read_Addr  = dest_reg;
-            Reg_Write_Addr = `A_REG;
+            Reg_Write_Addr = `R0_REG;
         end else begin
             Reg_Read_Addr  = src_reg;
             Reg_Write_Addr = dest_reg;
@@ -122,12 +122,12 @@ module Control #(
 
     assign ALU_Op_Sel = ((mode == `DATA_MODE) && (opcode == `PUSH)) ?
         `SUB
-        : ((mode == `DATA_MODE) && (opcode == `POP)) ?
+        : (((mode == `DATA_MODE) && (opcode == `POP)) ?
         `ADD
-        : opcode;
+        : opcode);
 
     assign ALU_Enable = ((mode == `DATA_MODE) && ((opcode == `PUSH) || (opcode == `POP)))
-                            ? 1 : (mode == `ALU_MODE);
+                            ? 1 : ((mode == `ALU_MODE) && (state >= 3) && (state < `STATE_END) );
 
     always_comb begin
         logic c_flag, z_flag;
@@ -211,20 +211,8 @@ module Control #(
                             endcase
                         end
                         `ALU_MODE: begin
-                            case (opcode)
-                                `ADD, `SUB, `MUL, `DIV, `AND, `OR, `XOR: begin
-                                    rom_addr   = (immd == 1'b1) ? 2 : 5;
-                                    next_state = 2;
-                                end
-                                `NOT, `RRS, `RRC, `LLS, `LLC: begin
-                                    rom_addr   = 8;
-                                    next_state = `STATE_END;
-                                end
-                                default: begin
-                                    rom_addr   = `ROM_NOTHING;
-                                    next_state = `STATE_END;
-                                end
-                            endcase
+                            rom_addr   = (immd == 1'b1) ? 0 : 11;
+                            next_state = (immd == 1'b1) ? 5 : 8;
                         end
                         `JUMP_MODE: begin
                             rom_addr   = 0;
@@ -257,16 +245,8 @@ module Control #(
                             endcase
                         end
                         `ALU_MODE: begin
-                            case (opcode)
-                                `ADD, `SUB, `MUL, `DIV, `AND, `OR, `XOR: begin
-                                    rom_addr   = 8;
-                                    next_state = `STATE_END;
-                                end
-                                default: begin
-                                    rom_addr   = `ROM_NOTHING;
-                                    next_state = `STATE_END;
-                                end
-                            endcase
+                            rom_addr   = 1;
+                            next_state = 6;
                         end
                         `JUMP_MODE: begin
                             rom_addr   = 1;
@@ -296,6 +276,10 @@ module Control #(
                                 end
                             endcase
                         end
+                        `ALU_MODE: begin
+                            rom_addr   = 2;
+                            next_state = 7;
+                        end
                         `JUMP_MODE: begin
                             rom_addr   = 2;
                             next_state = 7;
@@ -324,6 +308,10 @@ module Control #(
                                 end
                             endcase
                         end
+                        `ALU_MODE: begin
+                            rom_addr   = 5;
+                            next_state = 8;
+                        end
                         `JUMP_MODE: begin
                             rom_addr   = 5;
                             next_state = 8;
@@ -347,6 +335,10 @@ module Control #(
                                 default: begin
                                 end
                             endcase
+                        end
+                        `ALU_MODE: begin
+                            rom_addr   = 12;
+                            next_state = `STATE_END;
                         end
                         `JUMP_MODE: begin
                             rom_addr   = 13;

@@ -36,19 +36,19 @@
                             POP Rd              .1.. .1.1 DDDD ....                      Rd <- [++SP]
 
 
-    Arithmetic & Logic      ADD Rs / Immd       1.I. .... .... SSSS     data             A <- A + Rs / data
-                            SUB Rs / Immd       1.I. ...1 .... SSSS     data             A <- A + Rs / data
-                            MUL Rs / Immd       1.I. ..1. .... SSSS     data             A, B <- A * Rs / data
-                            DIV Rs / Immd       1.I. ..11 .... SSSS     data             A, B <- A / Rs / data
+    Arithmetic & Logic      ADD Rs / Immd       1.I. .... ...1 SSSS     data             A <- A + Rs / data
+                            SUB Rs / Immd       1.I. ...1 ...1 SSSS     data             A <- A + Rs / data
+                            MUL Rs / Immd       1.I. ..1. ...1 SSSS     data             A, B <- A * Rs / data
+                            DIV Rs / Immd       1.I. ..11 ...1 SSSS     data             A, B <- A / Rs / data
 
-                            AND Rd, Rs / Immd   1.I1 .... .... SSSS     data             A <- A & Rs / data
-                            OR  Rd, Rs / Immd   1.I1 ...1 .... SSSS     data             A <- A | Rs / data
-                            XOR Rd, Rs / Immd   1.I1 ..1. .... SSSS     data             A <- A ^ Rs / data
-                            NOT                 1..1 ..11 .... ....                      A <- A
-                            RRS                 1..1 .1.. .... ....                      A <- A >> 1
-                            RRC                 1..1 .1.1 .... ....                      CF, A <- A >> 1
-                            LLS                 1..1 .11. .... ....                      A <- A << 1
-                            LLC                 1..1 .111 .... ....                      CF, A <- A << 1
+                            AND Rs / Immd       1.I1 .... ...1 SSSS     data             A <- A & Rs / data
+                            OR  Rs / Immd       1.I1 ...1 ...1 SSSS     data             A <- A | Rs / data
+                            XOR Rs / Immd       1.I1 ..1. ...1 SSSS     data             A <- A ^ Rs / data
+                            NOT                 1..1 ..11 ...1 ....                      A <- A
+                            RRS                 1..1 .1.. ...1 ....                      A <- A >> 1
+                            RRC                 1..1 .1.1 ...1 ....                      CF, A <- A >> 1
+                            LLS                 1..1 .11. ...1 ....                      A <- A << 1
+                            LLC                 1..1 .111 ...1 ....                      CF, A <- A << 1
 
 
     Jump                    JMP addr            111. .... .... ....     addr             PC <- addr
@@ -63,16 +63,33 @@
 
 ## Register Encoding |  ALU Encoding
 -----------------------------------------------------------------------------------------------------
-    A      0000      |          
-    B      0001      |          ADD     00000
-    C      0010      |          SUB     00001
-    D      0011      |          MUL     00010
-    E      0100      |          DIV     00011
-    SP     0101      |          AND     10000
-    PC     0110      |          OR      10001
-    Flags  0111      |          XOR     10010
-                     |          NOT     10011
-                     |          RRS     10100
-                     |          RRC     10101
-                     |          LLS     10110
-                     |          LLC     10111
+    R0          0000       Not actual register, used for null / empty
+    R1 / Acc    0001
+    R2          0010
+    R3          0011
+    R4          0100
+    R5          0101
+    R6          0110
+    R7          0111
+    R8          1000
+    R9          1001
+    R10         1010
+    R11         1011
+    R12         1100
+    R13         1101
+    R14 / SP    1110
+    R15 / PC    1111
+
+
+    ADD     00000
+    SUB     00001
+    MUL     00010
+    DIV     00011
+    AND     10000
+    OR      10001
+    XOR     10010
+    NOT     10011
+    RRS     10100
+    RRC     10101
+    LLS     10110
+    LLC     10111

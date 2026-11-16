@@ -14,7 +14,7 @@ module Processor #(
 
     ////////////////////////  Declaration & Inittialization  ///////////////////////////////
     // Registers & flags
-    reg [DATA_WIDTH - 1 : 0] MAR, MDR, CIR, IR, PC;
+    reg [DATA_WIDTH - 1 : 0] MAR, MDR, CIR, IR, PC, R1_Acc;
     reg [7 : 0] Flags;
 
 
@@ -88,16 +88,15 @@ module Processor #(
         .data_read (internal_databus),
         .data_write(internal_databus),
         .addr_read (Reg_Read_Addr),
-        .addr_write(Reg_Write_Addr)
+        .addr_write(Reg_Write_Addr),
+        .R1_Acc    (R1_Acc)
     );
-
-    let Acc = register.register_file.reg_list.A_reg;
 
     // ALU
     Alu alu (
         .clk       (clk),
         .ALU_Enable(ALU_Enable),
-        .Input_A   (Acc),
+        .Input_A   (R1_Acc),
         .Input_B   (ALU_in_B),
         .op_select (ALU_Op_Sel),
         .Flags     (Flags),

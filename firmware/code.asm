@@ -1,6 +1,7 @@
-loop:
-    NOP
-    JMP loop
-HLT
+MOV R2, 0x3
+ADD R2
+ADD 0x5
+SUB 1
 
+HLT
 

@@ -13,24 +13,47 @@ module Alu #(
     output reg   [             7 : 0] Flags
 );
 
-    logic [DATA_WIDTH : 0] result;
+    logic [DATA_WIDTH - 1:0] result;
+    logic C_flag;
 
     always_comb begin
+        {C_flag, result} = 0;
         case (op_select)
-            `ADD: result = Input_A + Input_B;
-            `SUB: result = Input_A - Input_B;
+            // `ADD: {C_flag, result} = Input_A + Input_B;
+            `ADD: {C_flag, result} = 0;
+            `SUB: {C_flag, result} = (~Input_B);
             `AND: result = Input_A & Input_B;
             `OR: result = Input_A | Input_B;
             `XOR: result = Input_A ^ Input_B;
             `NOT: result = ~Input_A;
-            default: result = {(DATA_WIDTH + 1) {1'hz}};
+            `RRS: begin
+                result[DATA_WIDTH-2 : 0] = Input_A[DATA_WIDTH-1 : 1];
+                C_flag = Input_A[0];
+                result[DATA_WIDTH - 1] = C_flag;
+            end
+            `RRC: begin
+                result[DATA_WIDTH-2 : 0] = Input_A[DATA_WIDTH-1 : 1];
+                result[DATA_WIDTH - 1] = C_flag;
+                C_flag = Input_A[0];
+            end
+            `LLS: begin
+                result[DATA_WIDTH-1 : 1] = Input_A[DATA_WIDTH-2 : 0];
+                C_flag = Input_A[DATA_WIDTH - 1];
+                result[0] = C_flag;
+            end
+            `LLC: begin
+                result[DATA_WIDTH-1 : 1] = Input_A[DATA_WIDTH-2 : 0];
+                result[0] = C_flag;
+                C_flag = Input_A[DATA_WIDTH - 1];
+            end
+            default: {C_flag, result} = {(DATA_WIDTH + 1) {1'hz}};
         endcase
     end
 
     always_latch begin
         if (ALU_Enable) begin
             Flags[0] = (result[DATA_WIDTH-1 : 0] == 0);
-            Flags[1] = result[DATA_WIDTH];
+            Flags[1] = C_flag;
         end
     end
 
