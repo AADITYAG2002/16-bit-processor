@@ -6,6 +6,7 @@ module alu_tb;
 
 
     logic clk;
+    logic reset_n;
     logic ALU_Enable;
     logic [DATA_WIDTH - 1 : 0] Input_A, Input_B, ALU_output;
     logic [4 : 0] op_select;
@@ -13,6 +14,7 @@ module alu_tb;
 
     Alu alu (
         .clk       (clk),
+        .reset_n   (reset_n),
         .ALU_Enable(ALU_Enable),
         .Input_A   (Input_A),
         .Input_B   (Input_B),
@@ -27,13 +29,15 @@ module alu_tb;
         $dumpfile("alu_waveform.vcd");
         $dumpvars(0, alu_tb);
 
-        #10 Input_A = 5;
-        Input_B = 4;
-        #20 op_select = 1;
-        #20 op_select = 0;
-        #20 op_select = 1;
-        #10 ALU_Enable = 1;
-        #10 ALU_Enable = 0;
+        reset_n = 1;
+        #10 reset_n = 0;
+        #10 reset_n = 1;
+        #10 Input_A = 'h4003;
+        Input_B   = 'h0;
+        alu.Flags = 'h2;
+        #20 op_select = 5'b10110;
+        #20 ALU_Enable = 1;
+        #20 ALU_Enable = 0;
 
         #20 $finish;
     end

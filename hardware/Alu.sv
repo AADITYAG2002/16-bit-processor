@@ -5,7 +5,8 @@ module Alu #(
     parameter unsigned DATA_WIDTH = 16
 ) (
     input  logic                      clk,
-    input                             ALU_Enable,
+    input  logic                      reset_n,
+    input  logic                      ALU_Enable,
     input  logic [DATA_WIDTH - 1 : 0] Input_A,
     input  logic [DATA_WIDTH - 1 : 0] Input_B,
     input  logic [             4 : 0] op_select,
@@ -17,7 +18,7 @@ module Alu #(
     logic C_flag;
 
     always_comb begin
-        {C_flag, result} = 0;
+        C_flag = Flags[1];
         case (op_select)
             `ADD: {C_flag, result} = Input_A + Input_B;
             `SUB: {C_flag, result} = Input_A - Input_B;
@@ -50,13 +51,14 @@ module Alu #(
     end
 
     always_latch begin
+        if (!reset_n) Flags = 0;
         if (ALU_Enable) begin
             Flags[0] = (result[DATA_WIDTH-1 : 0] == 0);
             Flags[1] = C_flag;
         end
     end
 
-    always @(posedge clk) begin
+    always @(negedge clk) begin
         ALU_output <= result[DATA_WIDTH-1 : 0];
     end
 

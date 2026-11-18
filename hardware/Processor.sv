@@ -94,6 +94,7 @@ module Processor #(
     // ALU
     Alu alu (
         .clk       (clk),
+        .reset_n   (reset_n),
         .ALU_Enable(ALU_Enable),
         .Input_A   (R1_Acc),
         .Input_B   (ALU_in_B),
