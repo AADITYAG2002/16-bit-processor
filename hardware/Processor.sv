@@ -39,10 +39,9 @@ module Processor #(
     logic [4 : 0] ALU_Op_Sel;
 
     // interconnect wires & reg
-    wire [DATA_WIDTH - 1 : 0] internal_databus;
+    wire [DATA_WIDTH - 1 : 0] internal_databus, Reg_Read_Data;
     logic [ADDR_WIDTH - 1 : 0] next_pc;
-    logic [DATA_WIDTH - 1 : 0] ALU_out;
-    logic [DATA_WIDTH - 1 : 0] ALU_in_B;
+    logic [DATA_WIDTH - 1 : 0] ALU_out, ALU_in_B;
 
     // Control Unit
     Control control (
@@ -85,7 +84,7 @@ module Processor #(
         .read      (Reg_Read),
         .reset_n   (reset_n),
         .clk       (clk),
-        .data_read (internal_databus),
+        .data_read (Reg_Read_Data),
         .data_write(internal_databus),
         .addr_read (Reg_Read_Addr),
         .addr_write(Reg_Write_Addr),
@@ -120,29 +119,31 @@ module Processor #(
 
     ////////////////////////  Memory Access  ////////////////////////////
 
-    always_latch begin
+    // always_latch begin
+    always_ff @(negedge clk) begin
         if (!reset_n) begin
-            MAR = {DATA_WIDTH{1'b0}};
-            IR  = {DATA_WIDTH{1'b0}};
-            CIR = {DATA_WIDTH{1'b0}};
-            MDR = {DATA_WIDTH{1'b0}};
+            MAR <= {DATA_WIDTH{1'b0}};
+            IR  <= {DATA_WIDTH{1'b0}};
+            CIR <= {DATA_WIDTH{1'b0}};
+            MDR <= {DATA_WIDTH{1'b0}};
         end
-        if (MAR_Write) MAR = Io_Read_Write ? IR : PC;
-        if (IR_Write) IR = internal_databus;
-        if (CIR_Write) CIR = MDR;
-        if (Control_Read) MDR = data;
-        else if (MDR_Write) MDR = internal_databus;
+        if (MAR_Write) MAR <= Io_Read_Write ? IR : PC;
+        if (IR_Write) IR <= internal_databus;
+        if (CIR_Write) CIR <= MDR;
+        if (Control_Read) MDR <= data;
+        else if (MDR_Write) MDR <= internal_databus;
     end
 
     always_ff @(posedge clk) begin
         address <= MAR;
     end
-    assign data = Control_Write ? MDR : {DATA_WIDTH{1'hz}};
+    assign data = Control_Write ? MDR : {DATA_WIDTH{1'bz}};
 
     assign internal_databus = MDR_Read ? MDR
                                 : (ALU_Out_Write ? ALU_out
                                     : (IR_Read ? IR
-                                        : {DATA_WIDTH{1'hz}}));
+                                        : (Reg_Read ? Reg_Read_Data
+                                            :{DATA_WIDTH{1'hz}})));
 
     //////////////////////////////////////////////////////////////////////
 

@@ -19,9 +19,8 @@ module Alu #(
     always_comb begin
         {C_flag, result} = 0;
         case (op_select)
-            // `ADD: {C_flag, result} = Input_A + Input_B;
-            `ADD: {C_flag, result} = 0;
-            `SUB: {C_flag, result} = (~Input_B);
+            `ADD: {C_flag, result} = Input_A + Input_B;
+            `SUB: {C_flag, result} = Input_A - Input_B;
             `AND: result = Input_A & Input_B;
             `OR: result = Input_A | Input_B;
             `XOR: result = Input_A ^ Input_B;

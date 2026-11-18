@@ -1,0 +1,9 @@
+../Alu.sv
+../Control.sv
+../Memory.sv
+../Processor.sv
+../Register.sv
+../opcode.sv
+
+Processor_tb.sv
+

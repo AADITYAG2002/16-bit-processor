@@ -11,8 +11,8 @@ module ROM (
     input  logic [`ROM_ADDR_SIZE - 1 : 0] rom_addr,
     output logic [`ROM_DATA_SIZE - 1 : 0] CTRL
 );
-    // localparam logic [`ROM_DATA_SIZE * (`ROM_NUM_INST_SIZE + 1) - 1:0] memory = {
-    localparam logic [`ROM_DATA_SIZE - 1 : 0] memory[`ROM_NUM_INST_SIZE] = {
+    localparam logic [(`ROM_DATA_SIZE * `ROM_NUM_INST_SIZE) - 1 : 0] MEMORY = {
+        // localparam logic [`ROM_DATA_SIZE - 1 : 0] MEMORY[`ROM_NUM_INST_SIZE] = {
         /*
          * Reg_Read, Reg_Write,
          * Read_Mem, Write_Mem,
@@ -47,8 +47,8 @@ module ROM (
         /* 15 */ `ROM_DATA_SIZE'b0_0_0_0_0_0_0_0_0_0_0_0_0_000_0_0  // Nothing
     };
 
-    assign CTRL = memory[rom_addr];
-    // assign CTRL     = memory[ `ROM_DATA_SIZE * rom_addr +: `ROM_DATA_SIZE ] | memory[ `ROM_DATA_SIZE * read_reg_addr +: `ROM_DATA_SIZE ] | memory[ `ROM_DATA_SIZE * write_reg_addr +: `ROM_DATA_SIZE ];
+    // assign CTRL = MEMORY[rom_addr];
+    assign CTRL = MEMORY[`ROM_DATA_SIZE*(`ROM_NUM_INST_SIZE-rom_addr-1)+:`ROM_DATA_SIZE];
 endmodule
 
 module Control #(
@@ -219,6 +219,8 @@ module Control #(
                             next_state = 5;
                         end
                         default: begin
+                            rom_addr   = `ROM_NOTHING;
+                            next_state = `STATE_END;
                         end
                     endcase
                 end

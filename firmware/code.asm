@@ -1,7 +1,9 @@
-MOV R2, 0x3
+MOV R1, 0x3
+MOV R2, 6
 ADD R2
-ADD 0x5
-SUB 1
+ADD 1
+SUB 5
+SUB R2
 
 HLT
 
