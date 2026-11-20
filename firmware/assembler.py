@@ -158,6 +158,7 @@ class AssemblyParser:
                         dest_reg = 0
                         src_reg = 0
 
+                # Accumulator
                 if match[1].upper() in (
                     "ADD",
                     "SUB",
@@ -172,6 +173,12 @@ class AssemblyParser:
                     "LLC",
                 ):
                     dest_reg = REGISTERS.get("R1")
+
+                if match[1].upper() == "PUSH":
+                    dest_reg = REGISTERS.get("SP")
+
+                if match[1].upper() == "POP":
+                    src_reg = REGISTERS.get("SP")
 
                 hex_val = (
                     (mode << 14)

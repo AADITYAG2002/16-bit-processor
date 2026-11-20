@@ -32,8 +32,8 @@
     Data Transfer           MOV Rd, Rs / Immd   .1I. ...1 DDDD SSSS     data             Rd <- Rs / data
                             LDA Rd, Rs / Immd   .1I. ..1. DDDD SSSS     addr             Rd <- [Rs / addr]
                             STA Rd / Immd, Rs   .1I. ..11 DDDD SSSS     addr             [Rd / addr] <- Rs
-                            PUSH Rs             .1.. .1.. .... SSSS                      [SP--] <- Rs
-                            POP Rd              .1.. .1.1 DDDD ....                      Rd <- [++SP]
+                            PUSH Rs             .1.. .1.. 111. SSSS                      [--SP] <- Rs
+                            POP Rd              .1.. .1.1 DDDD 111.                      Rd <- [SP++]
 
 
     Arithmetic & Logic      ADD Rs / Immd       1.I. .... ...1 SSSS     data             A <- A + Rs / data
@@ -57,9 +57,9 @@
                             JNC addr            111. ..11 .... ....     addr             PC <- addr if CF == 0
                             JC  addr            111. .1.. .... ....     addr             PC <- addr if CF != 0
 
-                            CALL addr           1111 .... .... ....     addr             [SP--] <- PC
+                            CALL addr           1111 .... .... ....     addr             [--SP] <- PC
                                                                                          PC <- addr
-                            RET                 11.1 ...1 .... ....                      PC <- [++SP]
+                            RET                 11.1 ...1 .... ....                      PC <- [SP++]
 
 ## Register Encoding |  ALU Encoding
 -----------------------------------------------------------------------------------------------------

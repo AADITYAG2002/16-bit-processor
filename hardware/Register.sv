@@ -40,7 +40,7 @@ module Register #(
 
     register_file_t register_file;
 
-    always @(posedge clk) begin
+    always @(negedge clk) begin
         if (!reset_n) register_file <= 'b0;
         else if (write)
             if (addr_write != `R0_REG)

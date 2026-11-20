@@ -114,6 +114,16 @@ module Control #(
         if ((state == 4) && (mode == `DATA_MODE) && (opcode == `STA)) begin
             Reg_Read_Addr  = dest_reg;
             Reg_Write_Addr = `R0_REG;
+        end else if (((state == 4) || (state == 7))
+            && (mode == `DATA_MODE) && (opcode == `PUSH)) begin
+            Reg_Read_Addr  = dest_reg;
+            Reg_Write_Addr = `R1_REG;
+        end else if (((state == 9)) && (mode == `DATA_MODE) && (opcode == `POP)) begin
+            Reg_Read_Addr  = src_reg;
+            Reg_Write_Addr = `R1_REG;
+        end else if (((state == 11)) && (mode == `DATA_MODE) && (opcode == `POP)) begin
+            Reg_Read_Addr  = `R1_REG;
+            Reg_Write_Addr = src_reg;
         end else begin
             Reg_Read_Addr  = src_reg;
             Reg_Write_Addr = dest_reg;
@@ -126,8 +136,14 @@ module Control #(
         `ADD
         : opcode);
 
-    assign ALU_Enable = ((mode == `DATA_MODE) && ((opcode == `PUSH) || (opcode == `POP)))
-                            ? 1 : ((mode == `ALU_MODE) && (state >= 3) && (state < `STATE_END) );
+    assign ALU_Enable = ((state >= 3) && (state < `STATE_END))
+                            && (
+                                (
+                                    ((mode == `DATA_MODE) && ((opcode == `PUSH) || (opcode == `POP)))
+                                    ||
+                                    (mode == `ALU_MODE)
+                                )
+                                );
 
     always_comb begin
         logic c_flag, z_flag;
@@ -206,6 +222,14 @@ module Control #(
                                     rom_addr   = (immd == 1'b1) ? 0 : 11;
                                     next_state = (immd == 1'b1) ? 5 : 8;
                                 end
+                                `PUSH: begin
+                                    rom_addr   = 9;
+                                    next_state = 5;
+                                end
+                                `POP: begin
+                                    rom_addr   = 11;
+                                    next_state = 5;
+                                end
                                 default: begin
                                 end
                             endcase
@@ -242,6 +266,14 @@ module Control #(
                                     rom_addr   = 1;
                                     next_state = 6;
                                 end
+                                `PUSH: begin
+                                    rom_addr   = 14;
+                                    next_state = 6;
+                                end
+                                `POP: begin
+                                    rom_addr   = 4;
+                                    next_state = 6;
+                                end
                                 default: begin
                                 end
                             endcase
@@ -272,6 +304,14 @@ module Control #(
                                 end
                                 `STA: begin
                                     rom_addr   = 2;
+                                    next_state = 7;
+                                end
+                                `PUSH: begin
+                                    rom_addr   = 12;
+                                    next_state = 7;
+                                end
+                                `POP: begin
+                                    rom_addr   = 1;
                                     next_state = 7;
                                 end
                                 default: begin
@@ -306,6 +346,14 @@ module Control #(
                                     rom_addr   = 5;
                                     next_state = 8;
                                 end
+                                `PUSH: begin
+                                    rom_addr   = 11;
+                                    next_state = 8;
+                                end
+                                `POP: begin
+                                    rom_addr   = 2;
+                                    next_state = 8;
+                                end
                                 default: begin
                                 end
                             endcase
@@ -332,6 +380,14 @@ module Control #(
                                 end
                                 `STA: begin
                                     rom_addr   = 4;
+                                    next_state = 9;
+                                end
+                                `PUSH: begin
+                                    rom_addr   = 4;
+                                    next_state = 9;
+                                end
+                                `POP: begin
+                                    rom_addr   = 6;
                                     next_state = 9;
                                 end
                                 default: begin
@@ -362,6 +418,14 @@ module Control #(
                                     rom_addr   = 7;
                                     next_state = 10;
                                 end
+                                `PUSH: begin
+                                    rom_addr   = 7;
+                                    next_state = 10;
+                                end
+                                `POP: begin
+                                    rom_addr   = 9;
+                                    next_state = 10;
+                                end
                                 default: begin
                                 end
                             endcase
@@ -382,6 +446,14 @@ module Control #(
                                     rom_addr   = 8;
                                     next_state = `STATE_END;
                                 end
+                                `PUSH: begin
+                                    rom_addr   = 8;
+                                    next_state = `STATE_END;
+                                end
+                                `POP: begin
+                                    rom_addr   = 14;
+                                    next_state = 11;
+                                end
                                 default: begin
                                 end
                             endcase
@@ -396,6 +468,10 @@ module Control #(
                             case (opcode)
                                 `LDA: begin
                                     rom_addr   = 6;
+                                    next_state = `STATE_END;
+                                end
+                                `POP: begin
+                                    rom_addr   = 12;
                                     next_state = `STATE_END;
                                 end
                                 default: begin
